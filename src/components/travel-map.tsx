@@ -6,8 +6,16 @@ import { CalendarDays, MapPin, Star, Users } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { useGlobeTrotter } from "@/contexts/globetrotter-context";
-import type { TravelEvent } from "@/lib/globetrotter-data";
+import { HOST_MIN_RATING, MUSIC_STYLES, TRAVELER_EXTRAS, styleMatchScore } from "@/lib/discovery";
+import type { TravelEvent, TravelerProfile } from "@/lib/globetrotter-data";
 
 const tileLayers = {
   "Vintage Travel": {
@@ -33,13 +41,24 @@ type Cluster = {
   events: TravelEvent[];
 };
 
-function makeEventIcon(category: string, selected: boolean) {
+function makeEventIcon(
+  image: string,
+  title: string,
+  avatarUrl: string,
+  hostName: string,
+  category: string,
+  selected: boolean,
+) {
   return L.divIcon({
     className: "globetrotter-marker-shell",
-    html: `<span class="gt-marker ${selected ? "gt-marker-selected" : ""}" data-category="${category.toLowerCase()}"><span></span></span>`,
-    iconSize: [34, 34],
-    iconAnchor: [17, 17],
-    popupAnchor: [0, -18],
+    html:
+      `<span class="gt-photo-pin ${selected ? "gt-photo-selected" : ""}" data-category="${category.toLowerCase()}">` +
+      `<img class="gt-photo-img" src="${image}" alt="${title.replace(/"/g, "")}" />` +
+      `<span class="gt-avatar-badge"><img src="${avatarUrl}" alt="${hostName.replace(/"/g, "")}" /></span>` +
+      `</span>`,
+    iconSize: [52, 52],
+    iconAnchor: [26, 26],
+    popupAnchor: [0, -26],
   });
 }
 
@@ -154,15 +173,43 @@ function ZoomWatcher({ onZoom }: { onZoom: (zoom: number) => void }) {
   return null;
 }
 
-function EventPopupContent({ event }: { event: TravelEvent }) {
-  const { joinEvent, joinedEventIds, savedEventIds, toggleSave } = useGlobeTrotter();
+function EventPopupContent({
+  event,
+  hostAvatar,
+  hostName,
+  onProfile,
+}: {
+  event: TravelEvent;
+  hostAvatar: string;
+  hostName: string;
+  onProfile: (hostId: string) => void;
+}) {
+  const { facets, totalFacetCount, joinEvent, joinedEventIds, savedEventIds, toggleSave } =
+    useGlobeTrotter();
   const isJoined = joinedEventIds.includes(event.id);
   const isSaved = savedEventIds.includes(event.id);
+  const music = MUSIC_STYLES[event.id];
+  const score = styleMatchScore(event, facets);
+  const hostRating = TRAVELER_EXTRAS[event.hostId]?.rating;
 
   return (
     <div className="w-64 overflow-hidden rounded-md bg-popover font-sans text-popover-foreground">
       <img src={event.image} alt={event.title} className="h-28 w-full object-cover" />
       <div className="space-y-3 p-3">
+        <button
+          type="button"
+          onClick={() => onProfile(event.hostId)}
+          className="flex w-full items-center gap-2 rounded-lg p-1 text-left transition hover:bg-accent"
+        >
+          <img src={hostAvatar} alt={hostName} className="size-8 rounded-full object-cover" />
+          <span className="min-w-0 flex-1">
+            <span className="block truncate text-xs font-semibold">{hostName}</span>
+            <span className="flex items-center gap-1 text-[11px] text-muted-foreground">
+              <Star className="size-3 text-ochre" /> {hostRating?.toFixed(2) ?? event.rating} ·
+              Profili Gör
+            </span>
+          </span>
+        </button>
         <div>
           <p className="text-xs font-medium uppercase text-terracotta">{event.category}</p>
           <h3 className="mt-1 text-base font-semibold">{event.title}</h3>
@@ -170,6 +217,12 @@ function EventPopupContent({ event }: { event: TravelEvent }) {
             <MapPin className="size-3" /> {event.city}, {event.country}
           </p>
         </div>
+        {totalFacetCount > 0 ? (
+          <p className="text-xs font-bold text-sage">Tarz Uyumu %{score.pct}</p>
+        ) : null}
+        {music ? (
+          <p className="text-[11px] text-muted-foreground">Bu gece: {music.join(" • ")}</p>
+        ) : null}
         <div className="grid grid-cols-3 gap-2 text-xs text-muted-foreground">
           <span className="flex items-center gap-1">
             <Star className="size-3 text-ochre" /> {event.rating}
@@ -205,6 +258,103 @@ function EventPopupContent({ event }: { event: TravelEvent }) {
   );
 }
 
+function ProfileDialog({
+  travelerId,
+  onClose,
+}: {
+  travelerId: string | null;
+  onClose: () => void;
+}) {
+  const { travelers, allEvents, hostRequestIds, requestHostStay, setSelectedEventId } =
+    useGlobeTrotter();
+  const traveler = travelers.find((t) => t.id === travelerId);
+  const extras = traveler ? TRAVELER_EXTRAS[traveler.id] : undefined;
+  const eligible = !!extras && extras.hostOpen && extras.rating >= HOST_MIN_RATING;
+  const requested = traveler ? hostRequestIds.includes(traveler.id) : false;
+  const hostedEvents = traveler ? allEvents.filter((e) => e.hostId === traveler.id) : [];
+  const firstHosted = hostedEvents[0];
+
+  return (
+    <Dialog open={!!traveler} onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="border-glass-border bg-card/95 shadow-glass backdrop-blur-2xl sm:max-w-md">
+        {traveler ? (
+          <>
+            <DialogHeader>
+              <div className="flex items-center gap-3">
+                <img
+                  src={traveler.avatar}
+                  alt={traveler.name}
+                  className="size-14 rounded-full object-cover"
+                />
+                <div>
+                  <DialogTitle className="font-display text-2xl">{traveler.name}</DialogTitle>
+                  <DialogDescription>
+                    @{traveler.handle} · {traveler.location}
+                  </DialogDescription>
+                </div>
+              </div>
+            </DialogHeader>
+            <div className="grid gap-3">
+              <div className="flex flex-wrap items-center gap-2 text-xs">
+                <span className="flex items-center gap-1 rounded-full bg-sage/15 px-3 py-1 font-bold text-sage">
+                  <Star className="size-3 text-ochre" /> {extras?.rating.toFixed(2)} (
+                  {extras?.reviews} yorum)
+                </span>
+                <span className="rounded-full bg-muted px-3 py-1 font-medium text-muted-foreground">
+                  {traveler.countriesVisited} ülke
+                </span>
+                {eligible ? (
+                  <span className="rounded-full bg-terracotta/15 px-3 py-1 font-bold text-terracotta">
+                    Gönüllü ev sahibi
+                  </span>
+                ) : null}
+              </div>
+              <p className="text-sm leading-6 text-muted-foreground">{traveler.bio}</p>
+              <div className="flex flex-wrap gap-1.5">
+                {[...traveler.badges, ...traveler.travelStyles].map((tag) => (
+                  <span
+                    key={tag}
+                    className="rounded-full bg-muted px-2.5 py-1 text-[11px] font-medium text-muted-foreground"
+                  >
+                    {tag}
+                  </span>
+                ))}
+              </div>
+              {eligible ? (
+                <Button
+                  variant="warm"
+                  disabled={requested}
+                  onClick={() => requestHostStay(traveler.id)}
+                >
+                  <Users className="size-4" />
+                  {requested ? "Konaklama isteği gönderildi" : "Konaklama İsteği Gönder"}
+                </Button>
+              ) : (
+                <p className="rounded-xl bg-muted p-3 text-xs text-muted-foreground">
+                  Evinde konaklama isteği yalnızca {HOST_MIN_RATING.toFixed(2)}+ puanlı gönüllü ev
+                  sahiplerine gönderilebilir.
+                </p>
+              )}
+              {firstHosted ? (
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setSelectedEventId(firstHosted.id);
+                    onClose();
+                  }}
+                >
+                  <MapPin className="size-4" />
+                  {hostedEvents.length} etkinliğini gör
+                </Button>
+              ) : null}
+            </div>
+          </>
+        ) : null}
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 export default function TravelMap() {
   const {
     filteredEvents,
@@ -216,84 +366,108 @@ export default function TravelMap() {
     radarEnabled,
   } = useGlobeTrotter();
   const [zoom, setZoom] = useState(2.4);
+  const [profileId, setProfileId] = useState<string | null>(null);
   const layer = tileLayers[mapStyle];
   const clusters = useMemo(() => clusterEvents(filteredEvents, zoom), [filteredEvents, zoom]);
+  const hostOf = (hostId: string): TravelerProfile => {
+    const found = travelers.find((t) => t.id === hostId);
+    if (found) return found;
+    const first = travelers[0];
+    if (!first) throw new Error("Gezgin listesi boş");
+    return first;
+  };
 
   return (
-    <MapContainer
-      center={[22, 18]}
-      zoom={2.4}
-      minZoom={2}
-      maxZoom={14}
-      scrollWheelZoom
-      className="globetrotter-map"
-      zoomControl={false}
-    >
-      <TileLayer
-        key={mapStyle}
-        url={layer.url}
-        attribution={layer.attribution}
-        className={layer.className}
-      />
-      <ZoomWatcher onZoom={setZoom} />
-      <MapController selectedEvent={selectedEvent} />
+    <>
+      <MapContainer
+        center={[22, 18]}
+        zoom={2.4}
+        minZoom={2}
+        maxZoom={14}
+        scrollWheelZoom
+        className="globetrotter-map"
+        zoomControl={false}
+      >
+        <TileLayer
+          key={mapStyle}
+          url={layer.url}
+          attribution={layer.attribution}
+          className={layer.className}
+        />
+        <ZoomWatcher onZoom={setZoom} />
+        <MapController selectedEvent={selectedEvent} />
 
-      {clusters.map((cluster) => {
-        if (cluster.events.length > 1) {
+        {clusters.map((cluster) => {
+          if (cluster.events.length > 1) {
+            return (
+              <ClusterMarker
+                key={cluster.id}
+                cluster={cluster}
+                zoom={zoom}
+                onSelect={setSelectedEventId}
+              />
+            );
+          }
+
+          const event = cluster.events[0];
+          if (!event) return null;
+          const host = hostOf(event.hostId);
+
           return (
-            <ClusterMarker
-              key={cluster.id}
-              cluster={cluster}
-              zoom={zoom}
-              onSelect={setSelectedEventId}
-            />
-          );
-        }
-
-        const event = cluster.events[0];
-        if (!event) return null;
-
-        return (
-          <Marker
-            key={event.id}
-            position={event.coordinates}
-            icon={makeEventIcon(event.category, event.id === selectedEventId)}
-            eventHandlers={{ click: () => setSelectedEventId(event.id) }}
-          >
-            <Popup>
-              <EventPopupContent event={event} />
-            </Popup>
-          </Marker>
-        );
-      })}
-
-      {radarEnabled &&
-        travelers
-          .filter((traveler) => traveler.openToMeet)
-          .map((traveler) => (
             <Marker
-              key={traveler.id}
-              position={traveler.coordinates}
-              icon={makeTravelerIcon(traveler.openToMeet)}
+              key={event.id}
+              position={event.coordinates}
+              icon={makeEventIcon(
+                event.image,
+                event.title,
+                host.avatar,
+                host.name,
+                event.category,
+                event.id === selectedEventId,
+              )}
+              eventHandlers={{ click: () => setSelectedEventId(event.id) }}
             >
               <Popup>
-                <div className="w-48 space-y-2 font-sans text-popover-foreground">
-                  <div className="flex items-center gap-2">
-                    <img
-                      src={traveler.avatar}
-                      alt={traveler.name}
-                      className="size-10 rounded-full object-cover"
-                    />
-                    <div>
-                      <p className="font-semibold">{traveler.name}</p>
-                      <p className="text-xs text-muted-foreground">Open to meet nearby</p>
-                    </div>
-                  </div>
-                  <p className="text-xs text-muted-foreground">{traveler.bio}</p>
-                </div>
+                <EventPopupContent
+                  event={event}
+                  hostAvatar={host.avatar}
+                  hostName={host.name}
+                  onProfile={setProfileId}
+                />
               </Popup>
             </Marker>
-          ))}
-    </MapContainer>
+          );
+        })}
+
+        {radarEnabled &&
+          travelers
+            .filter((traveler) => traveler.openToMeet)
+            .map((traveler) => (
+              <Marker
+                key={traveler.id}
+                position={traveler.coordinates}
+                icon={makeTravelerIcon(traveler.openToMeet)}
+              >
+                <Popup>
+                  <div className="w-48 space-y-2 font-sans text-popover-foreground">
+                    <div className="flex items-center gap-2">
+                      <img
+                        src={traveler.avatar}
+                        alt={traveler.name}
+                        className="size-10 rounded-full object-cover"
+                      />
+                      <div>
+                        <p className="font-semibold">{traveler.name}</p>
+                        <p className="text-xs text-muted-foreground">Open to meet nearby</p>
+                      </div>
+                    </div>
+                    <p className="text-xs text-muted-foreground">{traveler.bio}</p>
+                  </div>
+                </Popup>
+              </Marker>
+            ))}
+      </MapContainer>
+      <ProfileDialog travelerId={profileId} onClose={() => setProfileId(null)} />
+    </>
   );
 }

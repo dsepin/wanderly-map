@@ -199,19 +199,44 @@
 
 @utility travel-shell {
   background:
-    radial-gradient(circle at 18% 15%, color-mix(in oklab, var(--terracotta) 20%, transparent), transparent 30%),
-    radial-gradient(circle at 82% 10%, color-mix(in oklab, var(--sage) 18%, transparent), transparent 28%),
-    linear-gradient(135deg, var(--background), color-mix(in oklab, var(--accent) 18%, var(--background)));
+    radial-gradient(
+      circle at 18% 15%,
+      color-mix(in oklab, var(--terracotta) 20%, transparent),
+      transparent 30%
+    ),
+    radial-gradient(
+      circle at 82% 10%,
+      color-mix(in oklab, var(--sage) 18%, transparent),
+      transparent 28%
+    ),
+    linear-gradient(
+      135deg,
+      var(--background),
+      color-mix(in oklab, var(--accent) 18%, var(--background))
+    );
 }
 
 @utility bg-map-preview {
   background:
     linear-gradient(90deg, color-mix(in oklab, var(--sage) 26%, transparent) 1px, transparent 1px),
     linear-gradient(color-mix(in oklab, var(--terracotta) 18%, transparent) 1px, transparent 1px),
-    radial-gradient(circle at 35% 35%, color-mix(in oklab, var(--sage) 36%, transparent), transparent 30%),
-    radial-gradient(circle at 70% 65%, color-mix(in oklab, var(--terracotta) 32%, transparent), transparent 34%),
+    radial-gradient(
+      circle at 35% 35%,
+      color-mix(in oklab, var(--sage) 36%, transparent),
+      transparent 30%
+    ),
+    radial-gradient(
+      circle at 70% 65%,
+      color-mix(in oklab, var(--terracotta) 32%, transparent),
+      transparent 34%
+    ),
     var(--muted);
-  background-size: 34px 34px, 34px 34px, 100% 100%, 100% 100%, 100% 100%;
+  background-size:
+    34px 34px,
+    34px 34px,
+    100% 100%,
+    100% 100%,
+    100% 100%;
 }
 
 .globetrotter-map {
@@ -300,6 +325,67 @@
   outline: 7px solid color-mix(in oklab, var(--terracotta) 24%, transparent);
 }
 
+/* Fotoğraflı mekan pini: mekan manzarası + sağ üstte organizatör avatarı */
+.gt-photo-pin {
+  position: relative;
+  display: block;
+  width: 52px;
+  height: 52px;
+  border: 3px solid var(--glass-strong);
+  border-radius: 999px;
+  box-shadow: var(--shadow-travel);
+  transform: translateZ(0);
+  transition: transform 0.2s ease;
+}
+
+.gt-photo-pin:hover {
+  transform: translateZ(0) scale(1.12);
+}
+
+.gt-photo-pin[data-category="hiking"],
+.gt-photo-pin[data-category="wellness"] {
+  border-color: var(--sage);
+}
+
+.gt-photo-pin[data-category="extreme"],
+.gt-photo-pin[data-category="nightlife"] {
+  border-color: var(--radar);
+}
+
+.gt-photo-img {
+  width: 100%;
+  height: 100%;
+  border-radius: 999px;
+  object-fit: cover;
+  display: block;
+}
+
+.gt-avatar-badge {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  display: block;
+  width: 24px;
+  height: 24px;
+  border: 2px solid var(--glass-strong);
+  border-radius: 999px;
+  overflow: hidden;
+  box-shadow: var(--shadow-card);
+  background: var(--muted);
+}
+
+.gt-avatar-badge img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.gt-photo-selected {
+  outline: 4px solid color-mix(in oklab, var(--terracotta) 55%, transparent);
+  outline-offset: 2px;
+}
+
 .gt-traveler-marker {
   width: 30px;
   height: 30px;
@@ -318,10 +404,14 @@
 @keyframes radar-pulse {
   0%,
   100% {
-    box-shadow: 0 0 0 0 color-mix(in oklab, var(--radar) 34%, transparent), var(--shadow-travel);
+    box-shadow:
+      0 0 0 0 color-mix(in oklab, var(--radar) 34%, transparent),
+      var(--shadow-travel);
   }
   50% {
-    box-shadow: 0 0 0 13px color-mix(in oklab, var(--radar) 0%, transparent), var(--shadow-travel);
+    box-shadow:
+      0 0 0 13px color-mix(in oklab, var(--radar) 0%, transparent),
+      var(--shadow-travel);
   }
 }
 

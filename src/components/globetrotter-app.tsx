@@ -2,6 +2,7 @@ import { ClientOnly } from "@tanstack/react-router";
 import {
   Bell,
   CalendarDays,
+  ChevronDown,
   Compass,
   Globe2,
   Grid2X2,
@@ -28,6 +29,7 @@ import {
 import { lazy, Suspense, useMemo, useRef, useState, type ChangeEvent, type FormEvent } from "react";
 
 import { Button } from "@/components/ui/button";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import {
   Dialog,
   DialogContent,
@@ -49,6 +51,14 @@ import { GlobeTrotterProvider, useGlobeTrotter } from "@/contexts/globetrotter-c
 import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable";
 import type { EventCategory } from "@/lib/globetrotter-data";
+import {
+  BUDGET_LEVELS,
+  FILTER_GROUPS,
+  MUSIC_STYLES,
+  PRESETS,
+  styleMatchScore,
+  type FacetGroupId,
+} from "@/lib/discovery";
 import { cn } from "@/lib/utils";
 
 const TravelMap = lazy(() => import("@/components/travel-map"));
@@ -179,7 +189,17 @@ function TopNavigation() {
         </Button>
 
         {session ? (
-          <Button variant="sage" size="sm" onClick={() => void supabase.auth.signOut()}>
+          <Button
+            variant="sage"
+            size="sm"
+            onClick={() => {
+              try {
+                void supabase.auth.signOut();
+              } catch {
+                /* misafir modu */
+              }
+            }}
+          >
             <UserRound className="size-4" />
             <span className="hidden sm:inline">Signed in</span>
           </Button>
@@ -200,17 +220,21 @@ function AuthDialog({ onGoogleSignIn }: { onGoogleSignIn: () => Promise<void> })
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setStatus("Checking your travel pass...");
-    const result =
-      mode === "sign-in"
-        ? await supabase.auth.signInWithPassword({ email, password })
-        : await supabase.auth.signUp({ email, password });
+    try {
+      const result =
+        mode === "sign-in"
+          ? await supabase.auth.signInWithPassword({ email, password })
+          : await supabase.auth.signUp({ email, password });
 
-    if (result.error) {
-      setStatus(result.error.message);
-      return;
+      if (result.error) {
+        setStatus(result.error.message);
+        return;
+      }
+
+      setStatus(mode === "sign-up" ? "Check your email to confirm your account." : "Welcome back.");
+    } catch {
+      setStatus("Supabase bağlı değil — misafir modunda devam ediyorsun.");
     }
-
-    setStatus(mode === "sign-up" ? "Check your email to confirm your account." : "Welcome back.");
   };
 
   return (
@@ -351,64 +375,246 @@ function Metric({ label, value }: { label: string; value: string }) {
   );
 }
 
+function FilterChip({
+  active,
+  onClick,
+  children,
+}: {
+  active: boolean;
+  onClick: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={cn(
+        "rounded-full border px-3 py-1.5 text-xs font-semibold transition",
+        active
+          ? "border-terracotta bg-terracotta text-terracotta-foreground shadow-travel"
+          : "border-border bg-background text-muted-foreground hover:border-terracotta/50 hover:text-foreground",
+      )}
+    >
+      {children}
+    </button>
+  );
+}
+
+function CountBadge({ count }: { count: number }) {
+  if (count === 0) return null;
+  return (
+    <span className="grid min-w-6 place-items-center rounded-full bg-terracotta px-1.5 py-0.5 text-[11px] font-bold text-terracotta-foreground">
+      {count}
+    </span>
+  );
+}
+
+/** Tarz Uyumu Oranı + o geceye özel müzik tarzları */
+function MatchLine({ eventId }: { eventId: string }) {
+  const { allEvents, facets, totalFacetCount } = useGlobeTrotter();
+  const event = allEvents.find((e) => e.id === eventId);
+  if (!event) return null;
+  const music = MUSIC_STYLES[eventId];
+  if (totalFacetCount === 0 && !music) return null;
+  const score = styleMatchScore(event, facets);
+  return (
+    <div className="flex flex-wrap items-center gap-2 text-xs">
+      {totalFacetCount > 0 ? (
+        <span className="rounded-full bg-sage/15 px-3 py-1 font-bold text-sage">
+          Tarz Uyumu %{score.pct}
+        </span>
+      ) : null}
+      {music ? (
+        <span className="rounded-full bg-muted px-3 py-1 font-medium text-muted-foreground">
+          Bu gece: {music.join(" • ")}
+        </span>
+      ) : null}
+    </div>
+  );
+}
+
 function FiltersPanel() {
   const {
-    categories,
-    activeCategories,
-    toggleCategory,
+    facets,
+    toggleFacet,
+    toggleFacetParent,
+    setFreeOnly,
+    applyPreset,
+    clearFacetFilters,
     clearFilters,
+    facetCount,
+    totalFacetCount,
+    filteredEvents,
     radiusKm,
     setRadiusKm,
-    maxPrice,
-    setMaxPrice,
   } = useGlobeTrotter();
+  const [openGroup, setOpenGroup] = useState<FacetGroupId | null>("experience");
 
   return (
     <section className="rounded-3xl border border-border bg-card p-5 shadow-card">
       <div className="flex items-center justify-between gap-3">
-        <div>
-          <p className="text-sm font-medium text-sage">Discovery filters</p>
-          <h2 className="font-display text-2xl font-semibold">Shape the map</h2>
+        <div className="flex items-center gap-2">
+          <h2 className="font-display text-2xl font-semibold">Filtrele</h2>
+          <CountBadge count={totalFacetCount} />
         </div>
         <Button variant="ghost" size="sm" onClick={clearFilters}>
-          Reset
+          Temizle
         </Button>
       </div>
-      <div className="mt-4 flex flex-wrap gap-2">
-        {categories.map((category) => {
-          const Icon = categoryIcons[category];
-          const active = activeCategories.includes(category);
-          return (
-            <Button
-              key={category}
-              type="button"
-              variant={active ? "sage" : "outline"}
-              size="sm"
-              onClick={() => toggleCategory(category)}
-            >
-              <Icon className="size-4" />
-              {category}
-            </Button>
-          );
-        })}
+
+      <div className="mt-4">
+        <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+          Hızlı tarz seçimi
+        </p>
+        <div className="mt-2 flex flex-wrap gap-2">
+          {PRESETS.map((preset) => (
+            <FilterChip key={preset.id} active={false} onClick={() => applyPreset(preset.id)}>
+              {preset.label}
+            </FilterChip>
+          ))}
+        </div>
       </div>
-      <div className="mt-5 grid gap-4">
-        <RangeControl
-          label="Radius"
-          value={radiusKm}
-          suffix="km"
-          min={2}
-          max={60}
-          onChange={setRadiusKm}
-        />
-        <RangeControl
-          label="Price"
-          value={maxPrice}
-          suffix="max"
-          min={0}
-          max={120}
-          onChange={setMaxPrice}
-        />
+
+      <div className="mt-4 grid gap-2">
+        {FILTER_GROUPS.map((group) => (
+          <Collapsible
+            key={group.id}
+            open={openGroup === group.id}
+            onOpenChange={(open) => setOpenGroup(open ? group.id : null)}
+            className="overflow-hidden rounded-2xl border border-border bg-background"
+          >
+            <CollapsibleTrigger className="flex w-full items-center justify-between gap-2 p-3 text-left">
+              <span>
+                <span className="block text-sm font-semibold">{group.title}</span>
+                <span className="block text-xs text-muted-foreground">{group.hint}</span>
+              </span>
+              <span className="flex items-center gap-2">
+                <CountBadge count={facetCount(group.id)} />
+                <ChevronDown
+                  className={cn(
+                    "size-4 text-muted-foreground transition-transform",
+                    openGroup === group.id && "rotate-180",
+                  )}
+                />
+              </span>
+            </CollapsibleTrigger>
+            <CollapsibleContent className="px-3 pb-3">
+              {group.parents?.map((parent) => {
+                const list = facets[group.id] as string[];
+                const selected = parent.children.filter((c) => list.includes(c.id));
+                return (
+                  <div key={parent.id} className="mt-2 rounded-xl bg-muted/60 p-2">
+                    <button
+                      type="button"
+                      className="flex w-full items-center justify-between px-1 py-1 text-left text-[13px] font-semibold"
+                      onClick={() =>
+                        toggleFacetParent(
+                          group.id,
+                          parent.children.map((c) => c.id),
+                        )
+                      }
+                    >
+                      <span>
+                        {parent.label}{" "}
+                        <span className="font-normal text-muted-foreground">
+                          ({selected.length}/{parent.children.length})
+                        </span>
+                      </span>
+                      <span className="text-xs font-medium text-terracotta">
+                        {selected.length === parent.children.length ? "Bırak" : "Tümü"}
+                      </span>
+                    </button>
+                    <div className="mt-1.5 flex flex-wrap gap-1.5">
+                      {parent.children.map((child) => (
+                        <FilterChip
+                          key={child.id}
+                          active={list.includes(child.id)}
+                          onClick={() => toggleFacet(group.id, child.id)}
+                        >
+                          {child.label}
+                        </FilterChip>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })}
+
+              {group.singles && group.custom !== "time" ? (
+                <div className="mt-2 flex flex-wrap gap-1.5">
+                  {group.singles.map((single) => {
+                    const list = facets[group.id] as string[];
+                    return (
+                      <FilterChip
+                        key={single.id}
+                        active={list.includes(single.id)}
+                        onClick={() => toggleFacet(group.id, single.id)}
+                      >
+                        {single.label}
+                      </FilterChip>
+                    );
+                  })}
+                </div>
+              ) : null}
+
+              {group.custom === "budget" ? (
+                <div className="mt-2 grid gap-3">
+                  <label className="flex cursor-pointer items-center justify-between rounded-xl bg-muted/60 px-3 py-2 text-sm font-medium">
+                    <span>Ücretsiz etkinlikler</span>
+                    <Switch
+                      checked={facets.freeOnly}
+                      onCheckedChange={setFreeOnly}
+                      aria-label="Ücretsiz etkinlikler"
+                    />
+                  </label>
+                  <div className="flex flex-wrap gap-1.5">
+                    {BUDGET_LEVELS.map((level) => (
+                      <FilterChip
+                        key={level.level}
+                        active={facets.budget.includes(level.level)}
+                        onClick={() => toggleFacet("budget", level.level)}
+                      >
+                        {level.label}
+                      </FilterChip>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
+
+              {group.custom === "time" ? (
+                <div className="mt-2 grid gap-3">
+                  <div className="flex flex-wrap gap-1.5">
+                    {group.singles?.map((single) => (
+                      <FilterChip
+                        key={single.id}
+                        active={facets.time.includes(single.id)}
+                        onClick={() => toggleFacet("time", single.id)}
+                      >
+                        {single.label}
+                      </FilterChip>
+                    ))}
+                  </div>
+                  <RangeControl
+                    label="Mesafe yarıçapı"
+                    value={radiusKm}
+                    suffix="km"
+                    min={1}
+                    max={20}
+                    onChange={setRadiusKm}
+                  />
+                </div>
+              ) : null}
+            </CollapsibleContent>
+          </Collapsible>
+        ))}
+      </div>
+
+      <div className="mt-4 grid grid-cols-2 gap-2">
+        <Button variant="outline" onClick={clearFacetFilters}>
+          Tümünü Temizle
+        </Button>
+        <Button variant="warm" onClick={() => scrollToSection("map")}>
+          {filteredEvents.length} Etkinlik Göster
+        </Button>
       </div>
     </section>
   );
@@ -451,14 +657,26 @@ function RangeControl({
 
 function EventHub() {
   const {
+    allEvents,
+    facets,
     filteredEvents,
     selectedEventId,
     setSelectedEventId,
     viewMode,
     setViewMode,
     clearFilters,
+    clearFacetFilters,
     searchQuery,
   } = useGlobeTrotter();
+  const nearMatches = useMemo(
+    () =>
+      allEvents
+        .map((event) => ({ event, score: styleMatchScore(event, facets) }))
+        .filter((item) => item.score.total > 0 && item.score.pct < 100)
+        .sort((a, b) => b.score.pct - a.score.pct)
+        .slice(0, 3),
+    [allEvents, facets],
+  );
 
   return (
     <section
@@ -497,6 +715,38 @@ function EventHub() {
             <Button variant="outline" size="sm" className="mt-4" onClick={clearFilters}>
               Clear all filters
             </Button>
+            {nearMatches.length > 0 ? (
+              <div className="mt-5 border-t border-border pt-4 text-left">
+                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                  Sana en yakın sonuçlar
+                </p>
+                <div className="mt-2 grid gap-2">
+                  {nearMatches.map(({ event, score }) => (
+                    <button
+                      key={event.id}
+                      type="button"
+                      onClick={() => {
+                        clearFacetFilters();
+                        setSelectedEventId(event.id);
+                      }}
+                      className="flex items-center gap-3 rounded-xl border border-border bg-card p-2 text-left transition hover:border-terracotta"
+                    >
+                      <img
+                        src={event.image}
+                        alt={event.title}
+                        className="size-12 rounded-lg object-cover"
+                      />
+                      <span className="min-w-0 flex-1">
+                        <span className="block truncate text-sm font-semibold">{event.title}</span>
+                        <span className="block text-xs text-muted-foreground">
+                          {event.city} · Tarz Uyumu %{score.pct}
+                        </span>
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ) : null}
           </div>
         ) : null}
         {filteredEvents.map((event) => (
@@ -929,6 +1179,7 @@ function MapStage() {
                 </div>
               </div>
               <p className="text-sm leading-6 text-muted-foreground">{selectedEvent.description}</p>
+              <MatchLine eventId={selectedEvent.id} />
               <div className="flex flex-wrap gap-2">
                 {selectedEvent.tags.map((tag) => (
                   <span

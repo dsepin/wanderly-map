@@ -19,6 +19,14 @@ import {
   type FeedItem,
   type TravelEvent,
 } from "@/lib/globetrotter-data";
+import {
+  EMPTY_FACETS,
+  PRESETS,
+  matchEventFacets,
+  type FacetFilters,
+  type FacetGroupId,
+  type PresetId,
+} from "@/lib/discovery";
 
 type MapStyle = "Vintage Travel" | "Dark Minimal" | "Satellite";
 type ViewMode = "list" | "grid";
@@ -44,13 +52,14 @@ type GlobeTrotterState = {
   viewMode: ViewMode;
   theme: ThemeMode;
   radiusKm: number;
-  maxPrice: number;
   radarEnabled: boolean;
   feed: FeedItem[];
   session: Session | null;
   searchQuery: string;
   savedEventIds: string[];
   joinedEventIds: string[];
+  hostRequestIds: string[];
+  facets: FacetFilters;
   setSelectedEventId: (eventId: string) => void;
   toggleCategory: (category: EventCategory) => void;
   clearFilters: () => void;
@@ -58,11 +67,18 @@ type GlobeTrotterState = {
   setViewMode: (mode: ViewMode) => void;
   setTheme: (theme: ThemeMode) => void;
   setRadiusKm: (radius: number) => void;
-  setMaxPrice: (price: number) => void;
   setRadarEnabled: (enabled: boolean) => void;
   setSearchQuery: (query: string) => void;
   toggleSave: (eventId: string) => void;
   joinEvent: (eventId: string) => void;
+  requestHostStay: (travelerId: string) => void;
+  toggleFacet: (group: FacetGroupId, id: string | number) => void;
+  toggleFacetParent: (group: FacetGroupId, childIds: string[]) => void;
+  setFreeOnly: (value: boolean) => void;
+  applyPreset: (preset: PresetId) => void;
+  clearFacetFilters: () => void;
+  facetCount: (group: FacetGroupId) => number;
+  totalFacetCount: number;
   addEvent: (event: DraftEvent) => void;
 };
 
@@ -78,11 +94,12 @@ export function GlobeTrotterProvider({ children }: { children: ReactNode }) {
   const [mapStyle, setMapStyle] = useState<MapStyle>("Vintage Travel");
   const [viewMode, setViewMode] = useState<ViewMode>("list");
   const [theme, setThemeState] = useState<ThemeMode>("light");
-  const [radiusKm, setRadiusKm] = useState(25);
-  const [maxPrice, setMaxPrice] = useState(90);
+  const [radiusKm, setRadiusKm] = useState(20);
   const [radarEnabled, setRadarEnabled] = useState(true);
   const [feed, setFeed] = useState(feedItems);
   const [session, setSession] = useState<Session | null>(null);
+  const [facets, setFacets] = useState<FacetFilters>(EMPTY_FACETS);
+  const [hostRequestIds, setHostRequestIds] = useState<string[]>([]);
 
   useEffect(() => {
     const savedTheme = window.localStorage.getItem("globetrotter-theme");
@@ -97,18 +114,35 @@ export function GlobeTrotterProvider({ children }: { children: ReactNode }) {
   }, [theme]);
 
   useEffect(() => {
+    // Supabase anahtarı yoksa (örn. anahtarsız önizleme) uygulama çökmesin:
+    // harita + filtreler mock veriyle çalışmaya devam eder.
     let mounted = true;
-    supabase.auth.getSession().then(({ data }) => {
-      if (mounted) setSession(data.session);
-    });
+    let listener: { subscription: { unsubscribe: () => void } } | undefined;
+    try {
+      supabase.auth
+        .getSession()
+        .then(({ data }) => {
+          if (mounted) setSession(data.session);
+        })
+        .catch(() => {
+          /* çevrimdışı mod: misafir olarak devam */
+        });
 
-    const { data: listener } = supabase.auth.onAuthStateChange((_event, nextSession) => {
-      setSession(nextSession);
-    });
+      const { data } = supabase.auth.onAuthStateChange((_event, nextSession) => {
+        if (mounted) setSession(nextSession);
+      });
+      listener = data;
+    } catch {
+      /* Supabase yapılandırılmamış: misafir modu */
+    }
 
     return () => {
       mounted = false;
-      listener.subscription.unsubscribe();
+      try {
+        listener?.subscription.unsubscribe();
+      } catch {
+        /* yoksay */
+      }
     };
   }, []);
 
@@ -141,11 +175,8 @@ export function GlobeTrotterProvider({ children }: { children: ReactNode }) {
   const filteredEvents = useMemo(() => {
     const query = searchQuery.trim().toLowerCase();
     return allEvents.filter((event) => {
-      const matchesFilters =
-        activeCategories.includes(event.category) &&
-        event.distanceKm <= radiusKm &&
-        event.price <= maxPrice;
-      if (!matchesFilters) return false;
+      if (!activeCategories.includes(event.category)) return false;
+      if (!matchEventFacets(event, facets, radiusKm)) return false;
       if (!query) return true;
       const haystack = [
         event.title,
@@ -159,7 +190,7 @@ export function GlobeTrotterProvider({ children }: { children: ReactNode }) {
         .toLowerCase();
       return haystack.includes(query);
     });
-  }, [activeCategories, allEvents, maxPrice, radiusKm, searchQuery]);
+  }, [activeCategories, allEvents, facets, radiusKm, searchQuery]);
 
   const selectedEvent = useMemo(
     () => allEvents.find((event) => event.id === selectedEventId),
@@ -178,10 +209,70 @@ export function GlobeTrotterProvider({ children }: { children: ReactNode }) {
 
   const clearFilters = useCallback(() => {
     setActiveCategories(categories);
-    setRadiusKm(25);
-    setMaxPrice(90);
+    setRadiusKm(20);
+    setFacets(EMPTY_FACETS);
     setSearchQuery("");
   }, []);
+
+  const toggleFacet = useCallback((group: FacetGroupId, id: string | number) => {
+    setFacets((current) => {
+      if (group === "budget" && typeof id === "number") {
+        const next = current.budget.includes(id)
+          ? current.budget.filter((b) => b !== id)
+          : [...current.budget, id];
+        return { ...current, budget: next };
+      }
+      if (typeof id !== "string") return current;
+      const list = current[group] as string[];
+      const next = list.includes(id) ? list.filter((x) => x !== id) : [...list, id];
+      return { ...current, [group]: next };
+    });
+  }, []);
+
+  const toggleFacetParent = useCallback((group: FacetGroupId, childIds: string[]) => {
+    setFacets((current) => {
+      const list = current[group] as string[];
+      const allOn = childIds.every((id) => list.includes(id));
+      const next = allOn
+        ? list.filter((x) => !childIds.includes(x))
+        : [...new Set([...list, ...childIds])];
+      return { ...current, [group]: next };
+    });
+  }, []);
+
+  const setFreeOnly = useCallback((value: boolean) => {
+    setFacets((current) => ({ ...current, freeOnly: value }));
+  }, []);
+
+  const applyPreset = useCallback((preset: PresetId) => {
+    const found = PRESETS.find((p) => p.id === preset);
+    if (!found) return;
+    setFacets((current) => ({ ...current, ...EMPTY_FACETS, ...found.patch }));
+  }, []);
+
+  const clearFacetFilters = useCallback(() => {
+    setFacets(EMPTY_FACETS);
+  }, []);
+
+  const facetCount = useCallback(
+    (group: FacetGroupId): number => {
+      if (group === "budget") return facets.budget.length + (facets.freeOnly ? 1 : 0);
+      return (facets[group] as string[]).length;
+    },
+    [facets],
+  );
+
+  const totalFacetCount = useMemo(
+    () =>
+      facets.experience.length +
+      facets.drinks.length +
+      facets.audience.length +
+      facets.budget.length +
+      (facets.freeOnly ? 1 : 0) +
+      facets.tempo.length +
+      facets.time.length,
+    [facets],
+  );
 
   const setTheme = useCallback((nextTheme: ThemeMode) => {
     setThemeState(nextTheme);
@@ -212,6 +303,25 @@ export function GlobeTrotterProvider({ children }: { children: ReactNode }) {
       }
     },
     [allEvents, joinedEventIds],
+  );
+
+  const requestHostStay = useCallback(
+    (travelerId: string) => {
+      if (hostRequestIds.includes(travelerId)) return;
+      setHostRequestIds((current) => [...current, travelerId]);
+      const host = travelers.find((t) => t.id === travelerId);
+      setFeed((current) => [
+        {
+          id: `host-${travelerId}-${Date.now()}`,
+          actor: "You",
+          action: "requested a stay with",
+          place: host?.name ?? "host",
+          minutesAgo: 1,
+        },
+        ...current.slice(0, 5),
+      ]);
+    },
+    [hostRequestIds],
   );
 
   const addEvent = useCallback((event: DraftEvent) => {
@@ -256,13 +366,14 @@ export function GlobeTrotterProvider({ children }: { children: ReactNode }) {
       viewMode,
       theme,
       radiusKm,
-      maxPrice,
       radarEnabled,
       feed,
       session,
       searchQuery,
       savedEventIds,
       joinedEventIds,
+      hostRequestIds,
+      facets,
       setSelectedEventId,
       toggleCategory,
       clearFilters,
@@ -270,11 +381,18 @@ export function GlobeTrotterProvider({ children }: { children: ReactNode }) {
       setViewMode,
       setTheme,
       setRadiusKm,
-      setMaxPrice,
       setRadarEnabled,
       setSearchQuery,
       toggleSave,
       joinEvent,
+      requestHostStay,
+      toggleFacet,
+      toggleFacetParent,
+      setFreeOnly,
+      applyPreset,
+      clearFacetFilters,
+      facetCount,
+      totalFacetCount,
       addEvent,
     }),
     [
@@ -284,7 +402,6 @@ export function GlobeTrotterProvider({ children }: { children: ReactNode }) {
       feed,
       filteredEvents,
       mapStyle,
-      maxPrice,
       radarEnabled,
       radiusKm,
       selectedEvent,
@@ -293,12 +410,22 @@ export function GlobeTrotterProvider({ children }: { children: ReactNode }) {
       searchQuery,
       savedEventIds,
       joinedEventIds,
+      hostRequestIds,
+      facets,
+      facetCount,
+      totalFacetCount,
       setTheme,
       toggleCategory,
       viewMode,
       setSearchQuery,
       toggleSave,
       joinEvent,
+      requestHostStay,
+      toggleFacet,
+      toggleFacetParent,
+      setFreeOnly,
+      applyPreset,
+      clearFacetFilters,
       addEvent,
     ],
   );
