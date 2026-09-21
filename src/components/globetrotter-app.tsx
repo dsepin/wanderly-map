@@ -4,10 +4,12 @@ import {
   CalendarDays,
   ChevronDown,
   Compass,
+  Croissant,
   Globe2,
   Grid2X2,
   Heart,
   ImagePlus,
+  Landmark,
   Layers3,
   LayoutList,
   LocateFixed,
@@ -15,6 +17,8 @@ import {
   MapPin,
   MessageCircle,
   Moon,
+  Mountain,
+  Pin,
   Plus,
   Radar,
   Route,
@@ -23,6 +27,7 @@ import {
   Sun,
   UserRound,
   Users,
+  Wallet,
   WalletCards,
   X,
 } from "lucide-react";
@@ -117,95 +122,238 @@ function GlobeTrotterExperience() {
 }
 
 function TopNavigation() {
-  const { theme, setTheme, session, searchQuery, setSearchQuery } = useGlobeTrotter();
+  const {
+    theme,
+    setTheme,
+    session,
+    searchQuery,
+    setSearchQuery,
+    allEvents,
+    setSelectedEventId,
+    pickMode,
+    setPickMode,
+    toggleFacetParent,
+    setFreeOnly,
+    facets,
+  } = useGlobeTrotter();
+  const [autocompleteOpen, setAutocompleteOpen] = useState(false);
 
   const handleGoogleSignIn = async () => {
     if (typeof window === "undefined") return;
-    await lovable.auth.signInWithOAuth("google", { redirect_uri: window.location.origin });
+    try {
+      await lovable.auth.signInWithOAuth("google", { redirect_uri: window.location.origin });
+    } catch {
+      /* misafir modu: Google oturumu yok */
+    }
   };
+
+  const suggestions = useMemo(() => {
+    const query = searchQuery.trim().toLowerCase();
+    if (query.length < 2) return [];
+    return allEvents
+      .filter((event) =>
+        [event.title, event.city, event.country, ...event.tags]
+          .join(" ")
+          .toLowerCase()
+          .includes(query),
+      )
+      .slice(0, 6);
+  }, [allEvents, searchQuery]);
+
+  const quickFilters = [
+    {
+      key: "yemek",
+      label: "Yeme & İçme",
+      icon: Croissant,
+      childIds: ["gastronomi", "sokak", "restoran"],
+    },
+    {
+      key: "doga",
+      label: "Doğa & Yürüyüş",
+      icon: Mountain,
+      childIds: ["trekking", "park", "bisiklet"],
+    },
+    {
+      key: "kultur",
+      label: "Kültür & Sanat",
+      icon: Landmark,
+      childIds: ["muze", "tiyatro", "sergi", "galeri"],
+    },
+    {
+      key: "gece",
+      label: "Gece Hayatı",
+      icon: Moon,
+      childIds: ["canli-muzik", "dj", "club", "pub", "sahil"],
+    },
+  ];
 
   return (
     <header
       id="top"
       className="pointer-events-none fixed inset-x-0 top-0 z-40 px-4 pt-4 sm:px-6 lg:px-8"
     >
-      <div className="pointer-events-auto mx-auto flex max-w-7xl items-center gap-3 rounded-2xl border border-glass-border bg-glass px-3 py-3 shadow-glass backdrop-blur-2xl">
-        <div className="flex shrink-0 items-center gap-2 px-2">
-          <div className="grid size-10 place-items-center rounded-xl bg-terracotta text-terracotta-foreground shadow-travel">
-            <Globe2 className="size-5" />
+      <div className="pointer-events-auto mx-auto flex max-w-7xl flex-col gap-2 rounded-2xl border border-glass-border bg-glass px-3 py-3 shadow-glass backdrop-blur-2xl">
+        <div className="flex items-center gap-3">
+          <div className="flex shrink-0 items-center gap-2 px-2">
+            <div className="grid size-10 place-items-center rounded-xl bg-terracotta text-terracotta-foreground shadow-travel">
+              <Globe2 className="size-5" />
+            </div>
+            <div className="hidden sm:block">
+              <p className="font-display text-lg font-semibold">GlobeTrotter</p>
+              <p className="text-xs text-muted-foreground">Live travel atlas</p>
+            </div>
           </div>
-          <div className="hidden sm:block">
-            <p className="font-display text-lg font-semibold">GlobeTrotter</p>
-            <p className="text-xs text-muted-foreground">Live travel atlas</p>
+
+          <div className="relative min-w-0 flex-1">
+            <label className="flex items-center gap-2 rounded-xl border border-input bg-background/70 px-3 py-2 text-sm shadow-sm backdrop-blur-xl">
+              <Search className="size-4 shrink-0 text-muted-foreground" />
+              <input
+                aria-label="Search destinations"
+                className="min-w-0 flex-1 bg-transparent text-foreground outline-none placeholder:text-muted-foreground"
+                placeholder="Search Tokyo, tapas, hidden trails..."
+                value={searchQuery}
+                onFocus={() => setAutocompleteOpen(true)}
+                onBlur={() => window.setTimeout(() => setAutocompleteOpen(false), 200)}
+                onChange={(event) => setSearchQuery(event.target.value)}
+              />
+              {searchQuery ? (
+                <button
+                  type="button"
+                  aria-label="Clear search"
+                  className="grid size-6 shrink-0 place-items-center rounded-full text-muted-foreground transition hover:bg-muted hover:text-foreground"
+                  onClick={() => setSearchQuery("")}
+                >
+                  <X className="size-3.5" />
+                </button>
+              ) : null}
+            </label>
+            {autocompleteOpen && suggestions.length > 0 ? (
+              <div className="absolute inset-x-0 top-full z-50 mt-2 overflow-hidden rounded-2xl border border-border bg-popover shadow-glass backdrop-blur-2xl">
+                {suggestions.map((event) => (
+                  <button
+                    key={event.id}
+                    type="button"
+                    className="flex w-full items-center gap-3 px-3 py-2 text-left transition hover:bg-accent"
+                    onMouseDown={(e) => e.preventDefault()}
+                    onClick={() => {
+                      setSearchQuery(event.title);
+                      setSelectedEventId(event.id);
+                      setAutocompleteOpen(false);
+                    }}
+                  >
+                    <img src={event.image} alt="" className="size-9 rounded-lg object-cover" />
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate text-sm font-semibold">{event.title}</span>
+                      <span className="block text-xs text-muted-foreground">
+                        {event.city}, {event.country}
+                      </span>
+                    </span>
+                    <MapPin className="size-4 text-terracotta" />
+                  </button>
+                ))}
+              </div>
+            ) : null}
           </div>
+
+          <Button
+            variant={pickMode ? "warm" : "glass"}
+            size="sm"
+            aria-label="Haritaya tıklayarak etkinlik yerleştir"
+            onClick={() => setPickMode(!pickMode)}
+          >
+            <Pin className="size-4" />
+            <span className="hidden xl:inline">
+              {pickMode ? "Tıklama aktif" : "Haritaya Tıkla"}
+            </span>
+          </Button>
+
+          <nav className="hidden items-center gap-1 xl:flex" aria-label="GlobeTrotter sections">
+            {navItems.map((item) => {
+              const Icon = item.icon;
+              return (
+                <Button
+                  key={item.label}
+                  variant="nav"
+                  size="sm"
+                  aria-label={item.label}
+                  onClick={() => scrollToSection(item.target)}
+                >
+                  <Icon className="size-4" />
+                  {item.label}
+                </Button>
+              );
+            })}
+          </nav>
+
+          <Button
+            variant="glass"
+            size="icon"
+            aria-label={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
+            onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+          >
+            {theme === "dark" ? <Sun className="size-4" /> : <Moon className="size-4" />}
+          </Button>
+
+          {session ? (
+            <Button
+              variant="sage"
+              size="sm"
+              onClick={() => {
+                try {
+                  void supabase.auth.signOut();
+                } catch {
+                  /* misafir modu */
+                }
+              }}
+            >
+              <UserRound className="size-4" />
+              <span className="hidden sm:inline">Signed in</span>
+            </Button>
+          ) : (
+            <AuthDialog onGoogleSignIn={handleGoogleSignIn} />
+          )}
         </div>
 
-        <label className="flex min-w-0 flex-1 items-center gap-2 rounded-xl border border-input bg-background/70 px-3 py-2 text-sm shadow-sm backdrop-blur-xl">
-          <Search className="size-4 shrink-0 text-muted-foreground" />
-          <input
-            aria-label="Search destinations"
-            className="min-w-0 flex-1 bg-transparent text-foreground outline-none placeholder:text-muted-foreground"
-            placeholder="Search Tokyo, tapas, hidden trails..."
-            value={searchQuery}
-            onChange={(event) => setSearchQuery(event.target.value)}
-          />
-          {searchQuery ? (
-            <button
-              type="button"
-              aria-label="Clear search"
-              className="grid size-6 shrink-0 place-items-center rounded-full text-muted-foreground transition hover:bg-muted hover:text-foreground"
-              onClick={() => setSearchQuery("")}
-            >
-              <X className="size-3.5" />
-            </button>
-          ) : null}
-        </label>
-
-        <nav className="hidden items-center gap-1 xl:flex" aria-label="GlobeTrotter sections">
-          {navItems.map((item) => {
-            const Icon = item.icon;
+        <div className="flex flex-wrap items-center gap-1.5">
+          <span className="hidden items-center gap-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground lg:flex">
+            <Layers3 className="size-3.5" /> Hızlı filtre
+          </span>
+          {quickFilters.map((filter) => {
+            const Icon = filter.icon;
+            const active = facets.experience.some((f) => filter.childIds.includes(f));
             return (
-              <Button
-                key={item.label}
-                variant="nav"
-                size="sm"
-                aria-label={item.label}
-                onClick={() => scrollToSection(item.target)}
+              <button
+                key={filter.key}
+                type="button"
+                onClick={() => toggleFacetParent("experience", filter.childIds)}
+                className={cn(
+                  "flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-semibold transition",
+                  active
+                    ? "border-terracotta bg-terracotta text-terracotta-foreground shadow-travel"
+                    : "border-border bg-background/70 text-muted-foreground hover:border-terracotta/50 hover:text-foreground",
+                )}
+                aria-pressed={active}
               >
-                <Icon className="size-4" />
-                {item.label}
-              </Button>
+                <Icon className="size-3.5" />
+                {filter.label}
+              </button>
             );
           })}
-        </nav>
-
-        <Button
-          variant="glass"
-          size="icon"
-          aria-label={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
-          onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-        >
-          {theme === "dark" ? <Sun className="size-4" /> : <Moon className="size-4" />}
-        </Button>
-
-        {session ? (
-          <Button
-            variant="sage"
-            size="sm"
-            onClick={() => {
-              try {
-                void supabase.auth.signOut();
-              } catch {
-                /* misafir modu */
-              }
-            }}
+          <button
+            type="button"
+            onClick={() => setFreeOnly(!facets.freeOnly)}
+            className={cn(
+              "flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-semibold transition",
+              facets.freeOnly
+                ? "border-terracotta bg-terracotta text-terracotta-foreground shadow-travel"
+                : "border-border bg-background/70 text-muted-foreground hover:border-terracotta/50 hover:text-foreground",
+            )}
+            aria-pressed={facets.freeOnly}
           >
-            <UserRound className="size-4" />
-            <span className="hidden sm:inline">Signed in</span>
-          </Button>
-        ) : (
-          <AuthDialog onGoogleSignIn={handleGoogleSignIn} />
-        )}
+            <Wallet className="size-3.5" />
+            Ücretsiz
+          </button>
+        </div>
       </div>
     </header>
   );

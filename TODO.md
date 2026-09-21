@@ -10,31 +10,31 @@
 
 ## Faz 0 — Stabilizasyon
 
-- `[>]` **T0 — Yeşil build:** tip hataları kapatıldı, `tsc` + `eslint` temiz.
+- `[x]` **T0 — Yeşil build:** tip hataları kapatıldı, `tsc` + `eslint` temiz.
 
 ## Faz 1 — Harita (sıfır kurulum, anahtarsız)
 
-- `[ ]` **T1 — Harita yükleme garantisi:** Leaflet + OSM/CartoDB/Esri (anahtarsız) kalsın,
+- `[x]` **T1 — Harita yükleme garantisi:** Leaflet + OSM/CartoDB/Esri (anahtarsız) kalsın,
   Supabase yokken bile uygulama çökmesin (misafir modu). `api key required` hatası kapanmalı.
-- `[ ]` **T2 — Fotoğraflı pinler:** yuvarlak semboller yerine mekan/manzara fotoğrafı;
+- `[x]` **T2 — Fotoğraflı pinler:** yuvarlak semboller yerine mekan/manzara fotoğrafı;
   sağ üstte organizatörün yuvarlak avatarı; avatara tıklayınca profil pop-up'ı.
-- `[ ]` **T3 — Mouse tekerleği zoom:** tekerlek + çift tık + +/- kontrolü çalışsın.
+- `[x]` **T3 — Mouse tekerleği zoom:** tekerlek + çift tık + +/- kontrolü çalışsın.
 
 ## Faz 2 — Filtreleme (Airbnb tarzı akordeon)
 
-- `[ ]` **T4 — 6 grup taksonomi:** Etkinlik & Deneyim (alt açılımlı), İçecek & Konsept,
+- `[x]` **T4 — 6 grup taksonomi:** Etkinlik & Deneyim (alt açılımlı), İçecek & Konsept,
   Kime Uygun, Bütçe (₺/₺₺/₺₺₺ + Ücretsiz), Tempo & Sağlık, Zaman & Mesafe (1–20 km).
-- `[ ]` **T5 — Akordeon + rozet:** her grup başlığında seçili sayısı, tek açık panel.
-- `[ ]` **T6 — Presetler:** Romantik Akşam / Ailecek Hafta Sonu / Genç & Hareketli.
-- `[ ]` **T7 — Footer:** "Tümünü Temizle" + canlı "X Etkinlik Göster".
-- `[ ]` **T8 — Pin-veri bağlama + Tarz Uyumu:** pinler anlık süzülsün; kartta `%` uyum;
+- `[x]` **T5 — Akordeon + rozet:** her grup başlığında seçili sayısı, tek açık panel.
+- `[x]` **T6 — Presetler:** Romantik Akşam / Ailecek Hafta Sonu / Genç & Hareketli.
+- `[x]` **T7 — Footer:** "Tümünü Temizle" + canlı "X Etkinlik Göster".
+- `[x]` **T8 — Pin-veri bağlama + Tarz Uyumu:** pinler anlık süzülsün; kartta `%` uyum;
   boş sonuçta en yakın 3 öneri.
 
 ## Faz 3 — Header + mesafe motoru
 
-- `[ ]` **T9 — Header:** arama (otomatik tamamlama) + "Haritaya Tıkla" modu +
-  ikonlu hızlı filtre barı (Yeme & İçme, Doğa, Kültür, Gece Hayatı, Bütçe).
-- `[ ]` **T10 — Tıkla-pin ile etkinlik oluşturma:** haritaya tıklanan noktaya pin + sihirbaz.
+- `[x]` **T9 — Header:** arama (otomatik tamamlama) + "Haritaya Tıkla" modu +
+  ikonlu hızlı filtre barı (Yeme & İçme, Doğa, Kültür, Gece Hayatı, Ücretsiz).
+- `[>]` **T10 — Tıkla-pin ile etkinlik oluşturma:** haritaya tıklanan noktaya pin + sihirbaz.
 - `[ ]` **T11 — Mesafe motoru:** varsayılan 10 km (harita merkezli), zoom/kaydırmada
   viewport dahil etme, mesafeye göre sıralı kare kartlar + km rozeti,
   pin tıklayınca kart vurgulama.
