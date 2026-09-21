@@ -3,7 +3,7 @@ import "leaflet/dist/leaflet.css";
 import L from "leaflet";
 import { MapContainer, Marker, Popup, TileLayer, useMap, useMapEvents } from "react-leaflet";
 import { CalendarDays, MapPin, Star, Users } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { useGlobeTrotter } from "@/contexts/globetrotter-context";
@@ -92,13 +92,53 @@ function clusterEvents(events: TravelEvent[], zoom: number): Cluster[] {
 function MapController({ selectedEvent }: { selectedEvent?: TravelEvent }) {
   const map = useMap();
 
-  useMemo(() => {
+  useEffect(() => {
     if (selectedEvent) {
       map.flyTo(selectedEvent.coordinates, Math.max(map.getZoom(), 5), { duration: 0.9 });
     }
   }, [map, selectedEvent]);
 
   return null;
+}
+
+function ClusterMarker({
+  cluster,
+  zoom,
+  onSelect,
+}: {
+  cluster: Cluster;
+  zoom: number;
+  onSelect: (eventId: string) => void;
+}) {
+  const map = useMap();
+
+  return (
+    <Marker
+      position={cluster.coordinates}
+      icon={makeClusterIcon(cluster.events.length)}
+      eventHandlers={{
+        click: () => {
+          map.flyTo(cluster.coordinates, Math.min(zoom + 2, 7), { duration: 0.8 });
+        },
+      }}
+    >
+      <Popup>
+        <div className="w-52 space-y-2 font-sans text-popover-foreground">
+          <p className="text-sm font-semibold">{cluster.events.length} trips nearby</p>
+          {cluster.events.slice(0, 3).map((event) => (
+            <button
+              key={event.id}
+              className="block w-full rounded-md px-2 py-1 text-left text-xs text-muted-foreground transition hover:bg-accent hover:text-accent-foreground"
+              onClick={() => onSelect(event.id)}
+              type="button"
+            >
+              {event.title}
+            </button>
+          ))}
+        </div>
+      </Popup>
+    </Marker>
+  );
 }
 
 function ZoomWatcher({ onZoom }: { onZoom: (zoom: number) => void }) {
@@ -140,35 +180,7 @@ export default function TravelMap() {
 
       {clusters.map((cluster) => {
         if (cluster.events.length > 1) {
-          return (
-            <Marker
-              key={cluster.id}
-              position={cluster.coordinates}
-              icon={makeClusterIcon(cluster.events.length)}
-              eventHandlers={{
-                click: (event) => {
-                  const map = event.target._map as L.Map | undefined;
-                  map?.flyTo(cluster.coordinates, Math.min(zoom + 2, 7), { duration: 0.8 });
-                },
-              }}
-            >
-              <Popup>
-                <div className="w-52 space-y-2 font-sans text-popover-foreground">
-                  <p className="text-sm font-semibold">{cluster.events.length} trips nearby</p>
-                  {cluster.events.slice(0, 3).map((event) => (
-                    <button
-                      key={event.id}
-                      className="block w-full rounded-md px-2 py-1 text-left text-xs text-muted-foreground transition hover:bg-accent hover:text-accent-foreground"
-                      onClick={() => setSelectedEventId(event.id)}
-                      type="button"
-                    >
-                      {event.title}
-                    </button>
-                  ))}
-                </div>
-              </Popup>
-            </Marker>
-          );
+          return <ClusterMarker key={cluster.id} cluster={cluster} zoom={zoom} onSelect={setSelectedEventId} />;
         }
 
         const event = cluster.events[0];
