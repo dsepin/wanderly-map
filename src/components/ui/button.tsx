@@ -14,6 +14,11 @@ const buttonVariants = cva(
         outline:
           "border border-input bg-background shadow-sm hover:bg-accent hover:text-accent-foreground",
         secondary: "bg-secondary text-secondary-foreground shadow-sm hover:bg-secondary/80",
+        warm: "bg-terracotta text-terracotta-foreground shadow-travel hover:bg-terracotta/90",
+        sage: "bg-sage text-sage-foreground shadow-sm hover:bg-sage/90",
+        glass:
+          "border border-glass-border bg-glass text-foreground shadow-glass backdrop-blur-xl hover:bg-glass-strong",
+        nav: "bg-transparent text-muted-foreground hover:bg-glass hover:text-foreground data-[status=active]:bg-glass-strong data-[status=active]:text-foreground",
         ghost: "hover:bg-accent hover:text-accent-foreground",
         link: "text-primary underline-offset-4 hover:underline",
       },

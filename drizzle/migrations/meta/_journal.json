@@ -1,0 +1,20 @@
+{
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1790013587291,
+      "tag": "0000_create_globetrotter_foundation",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1790013833536,
+      "tag": "0001_event_cover_storage_policies",
+      "breakpoints": true
+    }
+  ]
+}
