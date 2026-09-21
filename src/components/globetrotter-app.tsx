@@ -950,9 +950,9 @@ function EventHub() {
 }
 
 function CreateEventDialog() {
-  const { addEvent } = useGlobeTrotter();
+  const { addEvent, createOpen, setCreateOpen, createCoordinates, setCreateCoordinates } =
+    useGlobeTrotter();
   const [step, setStep] = useState(1);
-  const [open, setOpen] = useState(false);
   const [coverPreview, setCoverPreview] = useState<string>();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [draft, setDraft] = useState({
@@ -974,14 +974,22 @@ function CreateEventDialog() {
     setCoverPreview(preview);
   };
 
+  const handleOpenChange = (next: boolean) => {
+    setCreateOpen(next);
+    if (next) {
+      setDraft((current) => ({ ...current, coordinates: createCoordinates }));
+      setStep(1);
+    }
+  };
+
   const handleCreate = () => {
     addEvent({ ...draft, coverPreview });
-    setOpen(false);
+    setCreateOpen(false);
     setStep(1);
   };
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={createOpen} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
         <Button variant="warm" size="icon" aria-label="Create event">
           <Plus className="size-4" />

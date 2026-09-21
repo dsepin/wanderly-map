@@ -34,8 +34,8 @@
 
 - `[x]` **T9 — Header:** arama (otomatik tamamlama) + "Haritaya Tıkla" modu +
   ikonlu hızlı filtre barı (Yeme & İçme, Doğa, Kültür, Gece Hayatı, Ücretsiz).
-- `[>]` **T10 — Tıkla-pin ile etkinlik oluşturma:** haritaya tıklanan noktaya pin + sihirbaz.
-- `[ ]` **T11 — Mesafe motoru:** varsayılan 10 km (harita merkezli), zoom/kaydırmada
+- `[x]` **T10 — Tıkla-pin ile etkinlik oluşturma:** haritaya tıklanan noktaya pin + sihirbaz.
+- `[>]` **T11 — Mesafe motoru:** varsayılan 10 km (harita merkezli), zoom/kaydırmada
   viewport dahil etme, mesafeye göre sıralı kare kartlar + km rozeti,
   pin tıklayınca kart vurgulama.
 - `[ ]` **T12 — 12+ mock etkinlik:** İstanbul çevresine 5 yeni etkinlik (mesafe demosu).

@@ -62,8 +62,12 @@ type GlobeTrotterState = {
   facets: FacetFilters;
   pickMode: boolean;
   mapCenter: [number, number];
+  createOpen: boolean;
+  createCoordinates: [number, number];
   setMapCenter: (center: [number, number]) => void;
   setPickMode: (pickMode: boolean) => void;
+  setCreateOpen: (open: boolean) => void;
+  setCreateCoordinates: (coords: [number, number]) => void;
   setSelectedEventId: (eventId: string) => void;
   toggleCategory: (category: EventCategory) => void;
   clearFilters: () => void;
@@ -106,6 +110,8 @@ export function GlobeTrotterProvider({ children }: { children: ReactNode }) {
   const [hostRequestIds, setHostRequestIds] = useState<string[]>([]);
   const [pickMode, setPickMode] = useState(false);
   const [mapCenter, setMapCenter] = useState<[number, number]>([22, 18]);
+  const [createOpen, setCreateOpen] = useState(false);
+  const [createCoordinates, setCreateCoordinates] = useState<[number, number]>([41.0082, 28.9784]);
 
   useEffect(() => {
     const savedTheme = window.localStorage.getItem("globetrotter-theme");
@@ -382,8 +388,12 @@ export function GlobeTrotterProvider({ children }: { children: ReactNode }) {
       facets,
       pickMode,
       mapCenter,
+      createOpen,
+      createCoordinates,
       setMapCenter,
       setPickMode,
+      setCreateOpen,
+      setCreateCoordinates,
       setSelectedEventId,
       toggleCategory,
       clearFilters,
@@ -424,8 +434,12 @@ export function GlobeTrotterProvider({ children }: { children: ReactNode }) {
       facets,
       pickMode,
       mapCenter,
+      createOpen,
+      createCoordinates,
       setMapCenter,
       setPickMode,
+      setCreateOpen,
+      setCreateCoordinates,
       facetCount,
       totalFacetCount,
       setTheme,

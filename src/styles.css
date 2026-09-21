@@ -386,6 +386,47 @@
   outline-offset: 2px;
 }
 
+/* "Haritaya Tıkla" modu iğnesi */
+.gt-pick-pin {
+  position: relative;
+  display: block;
+  width: 36px;
+  height: 36px;
+  border: 3px solid var(--glass-strong);
+  border-radius: 999px;
+  background: var(--terracotta);
+  box-shadow: var(--shadow-travel);
+  transform: rotate(-45deg);
+  transform-origin: 50% 50%;
+}
+
+.gt-pick-pin::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 999px;
+  background: radial-gradient(circle, #fff 0 14%, transparent 15%);
+}
+
+.gt-pick-pin span {
+  position: absolute;
+  inset: -14px;
+  border-radius: 999px;
+  border: 2px solid color-mix(in oklab, var(--terracotta) 40%, transparent);
+  animation: gt-ping 1.6s ease-out infinite;
+}
+
+@keyframes gt-ping {
+  0% {
+    transform: scale(0.7);
+    opacity: 0.9;
+  }
+  100% {
+    transform: scale(1.5);
+    opacity: 0;
+  }
+}
+
 .gt-traveler-marker {
   width: 30px;
   height: 30px;

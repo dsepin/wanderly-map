@@ -80,6 +80,15 @@ function makeClusterIcon(count: number) {
   });
 }
 
+function makePickIcon() {
+  return L.divIcon({
+    className: "globetrotter-marker-shell",
+    html: `<span class="gt-pick-pin"><span></span></span>`,
+    iconSize: [44, 44],
+    iconAnchor: [22, 44],
+  });
+}
+
 function clusterEvents(events: TravelEvent[], zoom: number): Cluster[] {
   if (zoom >= 5) {
     return events.map((event) => ({
@@ -164,13 +173,47 @@ function ClusterMarker({
   );
 }
 
-function ZoomWatcher({ onZoom }: { onZoom: (zoom: number) => void }) {
+function ViewWatcher({ onView }: { onView: (zoom: number, lat: number, lng: number) => void }) {
   useMapEvents({
     zoomend(event) {
-      onZoom(event.target.getZoom());
+      const c = event.target.getCenter();
+      onView(event.target.getZoom(), c.lat, c.lng);
+    },
+    moveend(event) {
+      const c = event.target.getCenter();
+      onView(event.target.getZoom(), c.lat, c.lng);
     },
   });
   return null;
+}
+
+/** "Haritaya Tıkla" modu: tıklanan nokta pin olur ve etkinlik sihirbazı açılır */
+function ClickToCreate({
+  active,
+  onClick,
+}: {
+  active: boolean;
+  onClick: (lat: number, lng: number) => void;
+}) {
+  useMapEvents({
+    click(event) {
+      if (!active) return;
+      onClick(event.latlng.lat, event.latlng.lng);
+    },
+  });
+  return null;
+}
+
+function PickPin({ position }: { position: [number, number] }) {
+  return (
+    <Marker position={position} icon={makePickIcon()}>
+      <Popup>
+        <p className="font-sans text-sm font-semibold text-popover-foreground">
+          Yeni etkinlik burada oluşturulacak
+        </p>
+      </Popup>
+    </Marker>
+  );
 }
 
 function EventPopupContent({
@@ -364,6 +407,13 @@ export default function TravelMap() {
     setSelectedEventId,
     mapStyle,
     radarEnabled,
+    pickMode,
+    setPickMode,
+    createOpen,
+    setCreateOpen,
+    createCoordinates,
+    setCreateCoordinates,
+    setMapCenter,
   } = useGlobeTrotter();
   const [zoom, setZoom] = useState(2.4);
   const [profileId, setProfileId] = useState<string | null>(null);
@@ -394,8 +444,23 @@ export default function TravelMap() {
           attribution={layer.attribution}
           className={layer.className}
         />
-        <ZoomWatcher onZoom={setZoom} />
+        <ViewWatcher
+          onView={(nextZoom, lat, lng) => {
+            setZoom(nextZoom);
+            setMapCenter([lat, lng]);
+          }}
+        />
+        <ClickToCreate
+          active={pickMode && !createOpen}
+          onClick={(lat, lng) => {
+            setCreateCoordinates([lat, lng]);
+            setPickMode(false);
+            setCreateOpen(true);
+          }}
+        />
         <MapController selectedEvent={selectedEvent} />
+
+        {pickMode && !createOpen ? <PickPin position={createCoordinates} /> : null}
 
         {clusters.map((cluster) => {
           if (cluster.events.length > 1) {
