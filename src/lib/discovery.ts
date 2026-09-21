@@ -305,6 +305,18 @@ export const TRAVELER_EXTRAS: Record<
 
 /* ------------------------------ tarih ------------------------------ */
 
+/** Haversine: iki koordinat arası km */
+export function haversineKm(a: [number, number], b: [number, number]): number {
+  const R = 6371;
+  const toRad = (deg: number) => (deg * Math.PI) / 180;
+  const dLat = toRad(b[0] - a[0]);
+  const dLng = toRad(b[1] - a[1]);
+  const lat1 = toRad(a[0]);
+  const lat2 = toRad(b[0]);
+  const h = Math.sin(dLat / 2) ** 2 + Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLng / 2) ** 2;
+  return 2 * R * Math.asin(Math.sqrt(h));
+}
+
 const MONTHS: Record<string, number> = {
   Jan: 0,
   Feb: 1,
@@ -371,8 +383,14 @@ function timeCheck(event: TravelEvent, flag: string): boolean {
 /* --------------------------- eşleşme --------------------------- */
 
 /** Pinler için sert filtre: seçili her grup AND ile uygulanır. */
-export function matchEventFacets(event: TravelEvent, f: FacetFilters, radiusKm: number): boolean {
-  if (event.distanceKm > radiusKm) return false;
+export function matchEventFacets(
+  event: TravelEvent,
+  f: FacetFilters,
+  radiusKm: number,
+  liveDistanceKm?: number,
+): boolean {
+  const distKm = liveDistanceKm ?? event.distanceKm;
+  if (distKm > radiusKm) return false;
   const fx = facetsOf(event);
   if (f.experience.length > 0 && !f.experience.some((x) => fx.exp.includes(x))) return false;
   if (f.drinks.length > 0 && !f.drinks.some((x) => fx.drinks.includes(x))) return false;

@@ -22,6 +22,7 @@ import {
 import {
   EMPTY_FACETS,
   PRESETS,
+  haversineKm,
   matchEventFacets,
   type FacetFilters,
   type FacetGroupId,
@@ -102,7 +103,7 @@ export function GlobeTrotterProvider({ children }: { children: ReactNode }) {
   const [mapStyle, setMapStyle] = useState<MapStyle>("Vintage Travel");
   const [viewMode, setViewMode] = useState<ViewMode>("list");
   const [theme, setThemeState] = useState<ThemeMode>("light");
-  const [radiusKm, setRadiusKm] = useState(20);
+  const [radiusKm, setRadiusKm] = useState(10);
   const [radarEnabled, setRadarEnabled] = useState(true);
   const [feed, setFeed] = useState(feedItems);
   const [session, setSession] = useState<Session | null>(null);
@@ -186,23 +187,28 @@ export function GlobeTrotterProvider({ children }: { children: ReactNode }) {
 
   const filteredEvents = useMemo(() => {
     const query = searchQuery.trim().toLowerCase();
-    return allEvents.filter((event) => {
-      if (!activeCategories.includes(event.category)) return false;
-      if (!matchEventFacets(event, facets, radiusKm)) return false;
-      if (!query) return true;
-      const haystack = [
-        event.title,
-        event.city,
-        event.country,
-        event.category,
-        event.description,
-        ...event.tags,
-      ]
-        .join(" ")
-        .toLowerCase();
-      return haystack.includes(query);
-    });
-  }, [activeCategories, allEvents, facets, radiusKm, searchQuery]);
+    return allEvents
+      .filter((event) => {
+        const distKm = haversineKm(mapCenter, event.coordinates);
+        if (!activeCategories.includes(event.category)) return false;
+        if (!matchEventFacets(event, facets, radiusKm, distKm)) return false;
+        if (!query) return true;
+        const haystack = [
+          event.title,
+          event.city,
+          event.country,
+          event.category,
+          event.description,
+          ...event.tags,
+        ]
+          .join(" ")
+          .toLowerCase();
+        return haystack.includes(query);
+      })
+      .sort(
+        (a, b) => haversineKm(mapCenter, a.coordinates) - haversineKm(mapCenter, b.coordinates),
+      );
+  }, [activeCategories, allEvents, facets, mapCenter, radiusKm, searchQuery]);
 
   const selectedEvent = useMemo(
     () => allEvents.find((event) => event.id === selectedEventId),
@@ -221,7 +227,7 @@ export function GlobeTrotterProvider({ children }: { children: ReactNode }) {
 
   const clearFilters = useCallback(() => {
     setActiveCategories(categories);
-    setRadiusKm(20);
+    setRadiusKm(10);
     setFacets(EMPTY_FACETS);
     setSearchQuery("");
   }, []);

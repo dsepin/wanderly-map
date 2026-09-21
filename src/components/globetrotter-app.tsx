@@ -61,6 +61,7 @@ import {
   FILTER_GROUPS,
   MUSIC_STYLES,
   PRESETS,
+  haversineKm,
   styleMatchScore,
   type FacetGroupId,
 } from "@/lib/discovery";
@@ -815,6 +816,7 @@ function EventHub() {
     clearFilters,
     clearFacetFilters,
     searchQuery,
+    mapCenter,
   } = useGlobeTrotter();
   const nearMatches = useMemo(
     () =>
@@ -897,53 +899,61 @@ function EventHub() {
             ) : null}
           </div>
         ) : null}
-        {filteredEvents.map((event) => (
-          <article
-            key={event.id}
-            className={cn(
-              "group cursor-pointer overflow-hidden rounded-2xl border bg-background shadow-sm transition duration-300 hover:-translate-y-0.5 hover:shadow-card",
-              selectedEventId === event.id ? "border-terracotta" : "border-border",
-            )}
-            onClick={() => setSelectedEventId(event.id)}
-          >
-            <img
-              src={event.image}
-              alt={event.title}
-              loading="lazy"
-              className="h-36 w-full object-cover transition duration-500 group-hover:scale-105"
-            />
-            <div className="space-y-3 p-4">
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <p className="text-xs font-semibold uppercase text-terracotta">
-                    {event.category}
-                  </p>
-                  <h3 className="mt-1 font-display text-lg font-semibold leading-tight">
-                    {event.title}
-                  </h3>
-                  <p className="mt-1 flex items-center gap-1 text-sm text-muted-foreground">
-                    <MapPin className="size-4" /> {event.city}, {event.country}
-                  </p>
+        {filteredEvents.map((event) => {
+          const distKm = haversineKm(mapCenter, event.coordinates);
+          return (
+            <article
+              key={event.id}
+              className={cn(
+                "group cursor-pointer overflow-hidden rounded-2xl border bg-background shadow-sm transition duration-300 hover:-translate-y-0.5 hover:shadow-card",
+                selectedEventId === event.id ? "border-terracotta" : "border-border",
+              )}
+              onClick={() => setSelectedEventId(event.id)}
+            >
+              <div className="relative">
+                <img
+                  src={event.image}
+                  alt={event.title}
+                  loading="lazy"
+                  className="h-36 w-full object-cover transition duration-500 group-hover:scale-105"
+                />
+                <span className="absolute right-2 top-2 rounded-full bg-background/90 px-2.5 py-1 text-xs font-bold shadow-sm backdrop-blur-xl">
+                  {distKm.toFixed(1)} km
+                </span>
+              </div>
+              <div className="space-y-3 p-4">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="text-xs font-semibold uppercase text-terracotta">
+                      {event.category}
+                    </p>
+                    <h3 className="mt-1 font-display text-lg font-semibold leading-tight">
+                      {event.title}
+                    </h3>
+                    <p className="mt-1 flex items-center gap-1 text-sm text-muted-foreground">
+                      <MapPin className="size-4" /> {event.city}, {event.country}
+                    </p>
+                  </div>
+                  <span className="rounded-full bg-sage/15 px-2 py-1 text-xs font-semibold text-sage">
+                    {event.price === 0 ? "Free" : `${event.price} ${event.currency}`}
+                  </span>
                 </div>
-                <span className="rounded-full bg-sage/15 px-2 py-1 text-xs font-semibold text-sage">
-                  {event.price === 0 ? "Free" : `${event.price} ${event.currency}`}
-                </span>
+                <p className="text-sm leading-5 text-muted-foreground">{event.description}</p>
+                <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
+                  <span className="flex items-center gap-1">
+                    <CalendarDays className="size-3" /> {event.date} · {event.time}
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <Users className="size-3" /> {event.attendees}/{event.maxAttendees}
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <Star className="size-3 text-ochre" /> {event.rating}
+                  </span>
+                </div>
               </div>
-              <p className="text-sm leading-5 text-muted-foreground">{event.description}</p>
-              <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
-                <span className="flex items-center gap-1">
-                  <CalendarDays className="size-3" /> {event.date} · {event.time}
-                </span>
-                <span className="flex items-center gap-1">
-                  <Users className="size-3" /> {event.attendees}/{event.maxAttendees}
-                </span>
-                <span className="flex items-center gap-1">
-                  <Star className="size-3 text-ochre" /> {event.rating}
-                </span>
-              </div>
-            </div>
-          </article>
-        ))}
+            </article>
+          );
+        })}
       </div>
     </section>
   );
