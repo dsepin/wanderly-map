@@ -3,7 +3,6 @@ import {
   Bell,
   CalendarDays,
   Compass,
-  Filter,
   Globe2,
   Grid2X2,
   Heart,
@@ -19,14 +18,12 @@ import {
   Radar,
   Route,
   Search,
-  Send,
-  SlidersHorizontal,
-  Sparkles,
   Star,
   Sun,
   UserRound,
   Users,
   WalletCards,
+  X,
 } from "lucide-react";
 import { lazy, Suspense, useMemo, useRef, useState, type ChangeEvent, type FormEvent } from "react";
 
@@ -57,15 +54,24 @@ import { cn } from "@/lib/utils";
 const TravelMap = lazy(() => import("@/components/travel-map"));
 
 const navItems = [
-  { label: "Feed", icon: Bell },
-  { label: "Map", icon: Map },
-  { label: "Events", icon: CalendarDays },
-  { label: "Itinerary", icon: Route },
-  { label: "Profile", icon: UserRound },
+  { label: "Feed", icon: Bell, target: "feed" },
+  { label: "Map", icon: Map, target: "map" },
+  { label: "Events", icon: CalendarDays, target: "events" },
+  { label: "Itinerary", icon: Route, target: "itinerary" },
+  { label: "Profile", icon: UserRound, target: "top" },
 ];
 
-const categoryIcons: Record<EventCategory, typeof Sparkles> = {
-  Nightlife: Sparkles,
+function scrollToSection(target: string) {
+  if (typeof document === "undefined") return;
+  if (target === "top") {
+    window.scrollTo({ top: 0, behavior: "smooth" });
+    return;
+  }
+  document.getElementById(target)?.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+const categoryIcons: Record<EventCategory, typeof Compass> = {
+  Nightlife: Moon,
   Hiking: Compass,
   Cultural: Globe2,
   Foodie: WalletCards,
@@ -101,7 +107,7 @@ function GlobeTrotterExperience() {
 }
 
 function TopNavigation() {
-  const { theme, setTheme, session } = useGlobeTrotter();
+  const { theme, setTheme, session, searchQuery, setSearchQuery } = useGlobeTrotter();
 
   const handleGoogleSignIn = async () => {
     if (typeof window === "undefined") return;
@@ -109,7 +115,10 @@ function TopNavigation() {
   };
 
   return (
-    <header className="pointer-events-none fixed inset-x-0 top-0 z-40 px-4 pt-4 sm:px-6 lg:px-8">
+    <header
+      id="top"
+      className="pointer-events-none fixed inset-x-0 top-0 z-40 px-4 pt-4 sm:px-6 lg:px-8"
+    >
       <div className="pointer-events-auto mx-auto flex max-w-7xl items-center gap-3 rounded-2xl border border-glass-border bg-glass px-3 py-3 shadow-glass backdrop-blur-2xl">
         <div className="flex shrink-0 items-center gap-2 px-2">
           <div className="grid size-10 place-items-center rounded-xl bg-terracotta text-terracotta-foreground shadow-travel">
@@ -122,19 +131,37 @@ function TopNavigation() {
         </div>
 
         <label className="flex min-w-0 flex-1 items-center gap-2 rounded-xl border border-input bg-background/70 px-3 py-2 text-sm shadow-sm backdrop-blur-xl">
-          <Search className="size-4 text-muted-foreground" />
+          <Search className="size-4 shrink-0 text-muted-foreground" />
           <input
             aria-label="Search destinations"
             className="min-w-0 flex-1 bg-transparent text-foreground outline-none placeholder:text-muted-foreground"
             placeholder="Search Tokyo, tapas, hidden trails..."
+            value={searchQuery}
+            onChange={(event) => setSearchQuery(event.target.value)}
           />
+          {searchQuery ? (
+            <button
+              type="button"
+              aria-label="Clear search"
+              className="grid size-6 shrink-0 place-items-center rounded-full text-muted-foreground transition hover:bg-muted hover:text-foreground"
+              onClick={() => setSearchQuery("")}
+            >
+              <X className="size-3.5" />
+            </button>
+          ) : null}
         </label>
 
         <nav className="hidden items-center gap-1 xl:flex" aria-label="GlobeTrotter sections">
           {navItems.map((item) => {
             const Icon = item.icon;
             return (
-              <Button key={item.label} variant="nav" size="sm" aria-label={item.label}>
+              <Button
+                key={item.label}
+                variant="nav"
+                size="sm"
+                aria-label={item.label}
+                onClick={() => scrollToSection(item.target)}
+              >
                 <Icon className="size-4" />
                 {item.label}
               </Button>
@@ -197,7 +224,9 @@ function AuthDialog({ onGoogleSignIn }: { onGoogleSignIn: () => Promise<void> })
       <DialogContent className="border-glass-border bg-card/95 shadow-glass backdrop-blur-2xl sm:max-w-md">
         <DialogHeader>
           <DialogTitle className="font-display text-2xl">Your travel circle</DialogTitle>
-          <DialogDescription>Save trips, join events, and coordinate with nearby travelers.</DialogDescription>
+          <DialogDescription>
+            Save trips, join events, and coordinate with nearby travelers.
+          </DialogDescription>
         </DialogHeader>
         <div className="grid gap-3">
           <Button variant="glass" className="w-full" onClick={() => void onGoogleSignIn()}>
@@ -245,7 +274,9 @@ function AuthDialog({ onGoogleSignIn }: { onGoogleSignIn: () => Promise<void> })
               {mode === "sign-in" ? "Sign in" : "Create account"}
             </Button>
           </form>
-          {status ? <p className="rounded-xl bg-muted p-3 text-sm text-muted-foreground">{status}</p> : null}
+          {status ? (
+            <p className="rounded-xl bg-muted p-3 text-sm text-muted-foreground">{status}</p>
+          ) : null}
         </div>
       </DialogContent>
     </Dialog>
@@ -267,15 +298,19 @@ function Sidebar() {
 
 function SidebarHero() {
   const { filteredEvents, travelers, radarEnabled, setRadarEnabled } = useGlobeTrotter();
+  const liveCount = travelers.filter((traveler) => traveler.openToMeet).length;
 
   return (
     <section className="rounded-3xl border border-glass-border bg-glass p-5 shadow-glass backdrop-blur-2xl">
       <div className="flex items-start justify-between gap-4">
         <div>
           <p className="text-sm font-medium text-terracotta">Editorial Travel mode</p>
-          <h1 className="mt-2 font-display text-4xl font-semibold leading-tight">Find your next circle anywhere.</h1>
+          <h1 className="mt-2 font-display text-4xl font-semibold leading-tight">
+            Find your next circle anywhere.
+          </h1>
           <p className="mt-3 text-sm leading-6 text-muted-foreground">
-            Events, open-to-meet travelers, and collaborative plans are layered over one living world map.
+            Events, open-to-meet travelers, and collaborative plans are layered over one living
+            world map.
           </p>
         </div>
         <div className="rounded-2xl bg-sage/15 p-3 text-sage">
@@ -285,7 +320,7 @@ function SidebarHero() {
       <div className="mt-5 grid grid-cols-3 gap-3">
         <Metric label="Events" value={filteredEvents.length.toString()} />
         <Metric label="Travelers" value={travelers.length.toString()} />
-        <Metric label="Live" value="5" />
+        <Metric label="Live" value={liveCount.toString()} />
       </div>
       <div className="mt-5 flex items-center justify-between rounded-2xl border border-border bg-background/60 p-3">
         <div className="flex items-center gap-3">
@@ -297,7 +332,11 @@ function SidebarHero() {
             <p className="text-xs text-muted-foreground">Opt-in nearby availability</p>
           </div>
         </div>
-        <Switch checked={radarEnabled} onCheckedChange={setRadarEnabled} aria-label="Toggle traveler radar" />
+        <Switch
+          checked={radarEnabled}
+          onCheckedChange={setRadarEnabled}
+          aria-label="Toggle traveler radar"
+        />
       </div>
     </section>
   );
@@ -354,8 +393,22 @@ function FiltersPanel() {
         })}
       </div>
       <div className="mt-5 grid gap-4">
-        <RangeControl label="Radius" value={radiusKm} suffix="km" min={2} max={60} onChange={setRadiusKm} />
-        <RangeControl label="Price" value={maxPrice} suffix="max" min={0} max={120} onChange={setMaxPrice} />
+        <RangeControl
+          label="Radius"
+          value={radiusKm}
+          suffix="km"
+          min={2}
+          max={60}
+          onChange={setRadiusKm}
+        />
+        <RangeControl
+          label="Price"
+          value={maxPrice}
+          suffix="max"
+          min={0}
+          max={120}
+          onChange={setMaxPrice}
+        />
       </div>
     </section>
   );
@@ -397,10 +450,21 @@ function RangeControl({
 }
 
 function EventHub() {
-  const { filteredEvents, selectedEventId, setSelectedEventId, viewMode, setViewMode } = useGlobeTrotter();
+  const {
+    filteredEvents,
+    selectedEventId,
+    setSelectedEventId,
+    viewMode,
+    setViewMode,
+    clearFilters,
+    searchQuery,
+  } = useGlobeTrotter();
 
   return (
-    <section className="rounded-3xl border border-border bg-card p-5 shadow-card">
+    <section
+      id="events"
+      className="scroll-mt-28 rounded-3xl border border-border bg-card p-5 shadow-card"
+    >
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <p className="text-sm font-medium text-terracotta">Event & activity hub</p>
@@ -421,6 +485,20 @@ function EventHub() {
         </div>
       </div>
       <div className={cn("mt-4 grid gap-3", viewMode === "grid" && "grid-cols-2")}>
+        {filteredEvents.length === 0 ? (
+          <div className="rounded-2xl border border-dashed border-border bg-background p-6 text-center">
+            <MapPin className="mx-auto size-6 text-muted-foreground" />
+            <p className="mt-3 text-sm font-semibold">
+              No trips match{searchQuery ? ` “${searchQuery}”` : ""}.
+            </p>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Try widening the radius, raising the price cap, or clearing the search.
+            </p>
+            <Button variant="outline" size="sm" className="mt-4" onClick={clearFilters}>
+              Clear all filters
+            </Button>
+          </div>
+        ) : null}
         {filteredEvents.map((event) => (
           <article
             key={event.id}
@@ -430,12 +508,21 @@ function EventHub() {
             )}
             onClick={() => setSelectedEventId(event.id)}
           >
-            <img src={event.image} alt="" className="h-36 w-full object-cover transition duration-500 group-hover:scale-105" />
+            <img
+              src={event.image}
+              alt={event.title}
+              loading="lazy"
+              className="h-36 w-full object-cover transition duration-500 group-hover:scale-105"
+            />
             <div className="space-y-3 p-4">
               <div className="flex items-start justify-between gap-3">
                 <div>
-                  <p className="text-xs font-semibold uppercase text-terracotta">{event.category}</p>
-                  <h3 className="mt-1 font-display text-lg font-semibold leading-tight">{event.title}</h3>
+                  <p className="text-xs font-semibold uppercase text-terracotta">
+                    {event.category}
+                  </p>
+                  <h3 className="mt-1 font-display text-lg font-semibold leading-tight">
+                    {event.title}
+                  </h3>
                   <p className="mt-1 flex items-center gap-1 text-sm text-muted-foreground">
                     <MapPin className="size-4" /> {event.city}, {event.country}
                   </p>
@@ -446,9 +533,15 @@ function EventHub() {
               </div>
               <p className="text-sm leading-5 text-muted-foreground">{event.description}</p>
               <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
-                <span className="flex items-center gap-1"><CalendarDays className="size-3" /> {event.date} · {event.time}</span>
-                <span className="flex items-center gap-1"><Users className="size-3" /> {event.attendees}/{event.maxAttendees}</span>
-                <span className="flex items-center gap-1"><Star className="size-3 text-ochre" /> {event.rating}</span>
+                <span className="flex items-center gap-1">
+                  <CalendarDays className="size-3" /> {event.date} · {event.time}
+                </span>
+                <span className="flex items-center gap-1">
+                  <Users className="size-3" /> {event.attendees}/{event.maxAttendees}
+                </span>
+                <span className="flex items-center gap-1">
+                  <Star className="size-3 text-ochre" /> {event.rating}
+                </span>
               </div>
             </div>
           </article>
@@ -499,12 +592,17 @@ function CreateEventDialog() {
       <DialogContent className="border-glass-border bg-card/95 shadow-glass backdrop-blur-2xl sm:max-w-2xl">
         <DialogHeader>
           <DialogTitle className="font-display text-2xl">Create a travel event</DialogTitle>
-          <DialogDescription>Drop a pin, set the vibe, and invite nearby travelers.</DialogDescription>
+          <DialogDescription>
+            Drop a pin, set the vibe, and invite nearby travelers.
+          </DialogDescription>
         </DialogHeader>
         <div className="grid gap-5">
           <div className="grid grid-cols-3 gap-2">
             {[1, 2, 3].map((item) => (
-              <div key={item} className={cn("h-2 rounded-full", item <= step ? "bg-terracotta" : "bg-muted")} />
+              <div
+                key={item}
+                className={cn("h-2 rounded-full", item <= step ? "bg-terracotta" : "bg-muted")}
+              />
             ))}
           </div>
 
@@ -514,7 +612,9 @@ function CreateEventDialog() {
                 Event name
                 <input
                   className="h-11 rounded-xl border border-input bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring"
-                  onChange={(event) => setDraft((current) => ({ ...current, title: event.target.value }))}
+                  onChange={(event) =>
+                    setDraft((current) => ({ ...current, title: event.target.value }))
+                  }
                   placeholder="Sunset ferry photo walk"
                   value={draft.title}
                 />
@@ -523,7 +623,9 @@ function CreateEventDialog() {
                 City
                 <input
                   className="h-11 rounded-xl border border-input bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring"
-                  onChange={(event) => setDraft((current) => ({ ...current, city: event.target.value }))}
+                  onChange={(event) =>
+                    setDraft((current) => ({ ...current, city: event.target.value }))
+                  }
                   value={draft.city}
                 />
               </label>
@@ -531,7 +633,9 @@ function CreateEventDialog() {
                 Country
                 <input
                   className="h-11 rounded-xl border border-input bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring"
-                  onChange={(event) => setDraft((current) => ({ ...current, country: event.target.value }))}
+                  onChange={(event) =>
+                    setDraft((current) => ({ ...current, country: event.target.value }))
+                  }
                   value={draft.country}
                 />
               </label>
@@ -544,7 +648,12 @@ function CreateEventDialog() {
                 Category
                 <select
                   className="h-11 rounded-xl border border-input bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring"
-                  onChange={(event) => setDraft((current) => ({ ...current, category: event.target.value as EventCategory }))}
+                  onChange={(event) =>
+                    setDraft((current) => ({
+                      ...current,
+                      category: event.target.value as EventCategory,
+                    }))
+                  }
                   value={draft.category}
                 >
                   {Object.keys(categoryIcons).map((category) => (
@@ -556,7 +665,9 @@ function CreateEventDialog() {
                 Date
                 <input
                   className="h-11 rounded-xl border border-input bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring"
-                  onChange={(event) => setDraft((current) => ({ ...current, date: event.target.value }))}
+                  onChange={(event) =>
+                    setDraft((current) => ({ ...current, date: event.target.value }))
+                  }
                   value={draft.date}
                 />
               </label>
@@ -564,7 +675,9 @@ function CreateEventDialog() {
                 Time
                 <input
                   className="h-11 rounded-xl border border-input bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring"
-                  onChange={(event) => setDraft((current) => ({ ...current, time: event.target.value }))}
+                  onChange={(event) =>
+                    setDraft((current) => ({ ...current, time: event.target.value }))
+                  }
                   value={draft.time}
                 />
               </label>
@@ -572,7 +685,9 @@ function CreateEventDialog() {
                 Description
                 <textarea
                   className="min-h-28 rounded-xl border border-input bg-background p-3 text-sm outline-none focus:ring-2 focus:ring-ring"
-                  onChange={(event) => setDraft((current) => ({ ...current, description: event.target.value }))}
+                  onChange={(event) =>
+                    setDraft((current) => ({ ...current, description: event.target.value }))
+                  }
                   placeholder="Describe the experience, meeting point, and who should join."
                   value={draft.description}
                 />
@@ -603,8 +718,18 @@ function CreateEventDialog() {
                     </div>
                   )}
                   <div className="p-3">
-                    <input ref={fileInputRef} className="hidden" type="file" accept="image/*" onChange={handleCover} />
-                    <Button variant="outline" className="w-full" onClick={() => fileInputRef.current?.click()}>
+                    <input
+                      ref={fileInputRef}
+                      className="hidden"
+                      type="file"
+                      accept="image/*"
+                      onChange={handleCover}
+                    />
+                    <Button
+                      variant="outline"
+                      className="w-full"
+                      onClick={() => fileInputRef.current?.click()}
+                    >
                       <ImagePlus className="size-4" />
                       Cover photo
                     </Button>
@@ -615,7 +740,9 @@ function CreateEventDialog() {
                   <input
                     className="h-11 rounded-xl border border-input bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring"
                     min={0}
-                    onChange={(event) => setDraft((current) => ({ ...current, price: Number(event.target.value) }))}
+                    onChange={(event) =>
+                      setDraft((current) => ({ ...current, price: Number(event.target.value) }))
+                    }
                     type="number"
                     value={draft.price}
                   />
@@ -625,7 +752,11 @@ function CreateEventDialog() {
           ) : null}
 
           <div className="flex justify-between gap-3">
-            <Button variant="outline" disabled={step === 1} onClick={() => setStep((current) => Math.max(1, current - 1))}>
+            <Button
+              variant="outline"
+              disabled={step === 1}
+              onClick={() => setStep((current) => Math.max(1, current - 1))}
+            >
               Back
             </Button>
             {step < 3 ? (
@@ -646,27 +777,59 @@ function CreateEventDialog() {
 
 function ItineraryPanel() {
   const { selectedEvent, filteredEvents } = useGlobeTrotter();
-  const itinerary = useMemo(() => [selectedEvent, ...filteredEvents.filter((event) => event.id !== selectedEvent?.id).slice(0, 3)].filter(Boolean), [filteredEvents, selectedEvent]);
+  const [shareLabel, setShareLabel] = useState("Share");
+  const itinerary = useMemo(
+    () =>
+      [
+        selectedEvent,
+        ...filteredEvents.filter((event) => event.id !== selectedEvent?.id).slice(0, 3),
+      ].filter(Boolean),
+    [filteredEvents, selectedEvent],
+  );
+  const planCity = selectedEvent?.city ?? filteredEvents[0]?.city;
+
+  const handleShare = async () => {
+    try {
+      const link = `${window.location.origin}${window.location.pathname}#itinerary`;
+      await navigator.clipboard.writeText(link);
+      setShareLabel("Copied!");
+    } catch {
+      setShareLabel("Copy failed");
+    }
+    window.setTimeout(() => setShareLabel("Share"), 2000);
+  };
 
   return (
-    <section className="rounded-3xl border border-border bg-card p-5 shadow-card">
+    <section
+      id="itinerary"
+      className="scroll-mt-28 rounded-3xl border border-border bg-card p-5 shadow-card"
+    >
       <div className="flex items-center justify-between gap-3">
         <div>
           <p className="text-sm font-medium text-sage">Collaborative itinerary</p>
-          <h2 className="font-display text-2xl font-semibold">Shared Lisbon sprint</h2>
+          <h2 className="font-display text-2xl font-semibold">
+            {planCity ? `${planCity} sprint` : "Your trip"}
+          </h2>
         </div>
-        <Button variant="outline" size="sm">
-          Share
+        <Button variant="outline" size="sm" onClick={() => void handleShare()}>
+          {shareLabel}
         </Button>
       </div>
       <div className="mt-4 grid gap-3">
         {itinerary.map((event, index) =>
           event ? (
-            <div key={event.id} className="flex items-center gap-3 rounded-2xl border border-border bg-background p-3">
-              <div className="grid size-10 place-items-center rounded-xl bg-muted font-semibold">{index + 1}</div>
+            <div
+              key={event.id}
+              className="flex items-center gap-3 rounded-2xl border border-border bg-background p-3"
+            >
+              <div className="grid size-10 place-items-center rounded-xl bg-muted font-semibold">
+                {index + 1}
+              </div>
               <div className="min-w-0 flex-1">
                 <p className="truncate text-sm font-semibold">{event.title}</p>
-                <p className="text-xs text-muted-foreground">Day {index + 1} · {event.time} · drag-ready timeline</p>
+                <p className="text-xs text-muted-foreground">
+                  Day {index + 1} · {event.time} · {event.city}
+                </p>
               </div>
               <Route className="size-4 text-sage" />
             </div>
@@ -678,38 +841,62 @@ function ItineraryPanel() {
 }
 
 function MapStage() {
-  const { selectedEvent, mapStyle, setMapStyle, filteredEvents, feed } = useGlobeTrotter();
+  const {
+    selectedEvent,
+    mapStyle,
+    setMapStyle,
+    filteredEvents,
+    feed,
+    joinEvent,
+    joinedEventIds,
+    savedEventIds,
+    toggleSave,
+  } = useGlobeTrotter();
+  const isJoined = selectedEvent ? joinedEventIds.includes(selectedEvent.id) : false;
+  const isSaved = selectedEvent ? savedEventIds.includes(selectedEvent.id) : false;
 
   return (
-    <section className="relative min-h-[calc(100vh-6rem)] overflow-hidden lg:min-h-screen">
+    <section
+      id="map"
+      className="relative isolate min-h-[calc(100vh-6rem)] scroll-mt-20 overflow-hidden lg:min-h-screen"
+    >
       <ClientOnly fallback={<MapSkeleton />}>
         <Suspense fallback={<MapSkeleton />}>
           <TravelMap />
         </Suspense>
       </ClientOnly>
-      <div className="pointer-events-none absolute inset-x-4 top-24 z-[500] flex flex-wrap items-start justify-between gap-3 lg:top-28">
+      <div className="pointer-events-none absolute inset-x-4 top-24 z-10 flex flex-wrap items-start justify-between gap-3 lg:top-28">
         <div className="pointer-events-auto rounded-2xl border border-glass-border bg-glass p-2 shadow-glass backdrop-blur-2xl">
           <div className="flex flex-wrap gap-2">
             {(["Vintage Travel", "Dark Minimal", "Satellite"] as const).map((style) => (
-              <Button key={style} variant={mapStyle === style ? "warm" : "glass"} size="sm" onClick={() => setMapStyle(style)}>
+              <Button
+                key={style}
+                variant={mapStyle === style ? "warm" : "glass"}
+                size="sm"
+                onClick={() => setMapStyle(style)}
+              >
                 <Layers3 className="size-4" />
                 {style}
               </Button>
             ))}
           </div>
         </div>
-        <div className="pointer-events-auto hidden w-80 rounded-3xl border border-glass-border bg-glass p-4 shadow-glass backdrop-blur-2xl xl:block">
+        <div
+          id="feed"
+          className="pointer-events-auto hidden w-80 scroll-mt-28 rounded-3xl border border-glass-border bg-glass p-4 shadow-glass backdrop-blur-2xl xl:block"
+        >
           <div className="flex items-center justify-between gap-3">
             <div>
               <p className="text-sm font-semibold">Live activity feed</p>
-              <p className="text-xs text-muted-foreground">Realtime-ready nearby updates</p>
+              <p className="text-xs text-muted-foreground">Nearby updates</p>
             </div>
             <Bell className="size-5 text-terracotta" />
           </div>
           <div className="mt-3 grid gap-2">
             {feed.slice(0, 4).map((item) => (
               <div key={item.id} className="rounded-2xl bg-background/70 p-3 text-sm shadow-sm">
-                <span className="font-semibold">{item.actor}</span> {item.action} <span className="text-sage">{item.place}</span>
+                <span className="font-semibold">{item.actor}</span> {item.action}{" "}
+                <span className="text-sage">{item.place}</span>
                 <p className="mt-1 text-xs text-muted-foreground">{item.minutesAgo} min ago</p>
               </div>
             ))}
@@ -717,15 +904,25 @@ function MapStage() {
         </div>
       </div>
       {selectedEvent ? (
-        <div className="pointer-events-none absolute bottom-6 left-4 right-4 z-[500] hidden justify-center lg:flex">
+        <div className="pointer-events-none absolute bottom-6 left-4 right-4 z-10 hidden justify-center lg:flex">
           <div className="pointer-events-auto grid w-full max-w-3xl grid-cols-[180px_1fr] overflow-hidden rounded-3xl border border-glass-border bg-glass shadow-glass backdrop-blur-2xl">
-            <img src={selectedEvent.image} alt="" className="h-full min-h-44 object-cover" />
+            <img
+              src={selectedEvent.image}
+              alt={selectedEvent.title}
+              className="h-full min-h-44 object-cover"
+            />
             <div className="grid gap-4 p-5">
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>
-                  <p className="text-xs font-semibold uppercase text-terracotta">{selectedEvent.category}</p>
-                  <h2 className="mt-1 font-display text-2xl font-semibold">{selectedEvent.title}</h2>
-                  <p className="mt-1 text-sm text-muted-foreground">{selectedEvent.city}, {selectedEvent.country}</p>
+                  <p className="text-xs font-semibold uppercase text-terracotta">
+                    {selectedEvent.category}
+                  </p>
+                  <h2 className="mt-1 font-display text-2xl font-semibold">
+                    {selectedEvent.title}
+                  </h2>
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    {selectedEvent.city}, {selectedEvent.country}
+                  </p>
                 </div>
                 <div className="rounded-2xl bg-background/70 px-3 py-2 text-sm font-semibold shadow-sm">
                   {filteredEvents.length} matches
@@ -734,13 +931,29 @@ function MapStage() {
               <p className="text-sm leading-6 text-muted-foreground">{selectedEvent.description}</p>
               <div className="flex flex-wrap gap-2">
                 {selectedEvent.tags.map((tag) => (
-                  <span key={tag} className="rounded-full bg-muted px-3 py-1 text-xs font-medium text-muted-foreground">{tag}</span>
+                  <span
+                    key={tag}
+                    className="rounded-full bg-muted px-3 py-1 text-xs font-medium text-muted-foreground"
+                  >
+                    {tag}
+                  </span>
                 ))}
               </div>
               <div className="flex flex-wrap gap-2">
-                <Button variant="warm"><Users className="size-4" /> Join trip</Button>
-                <Button variant="glass"><Heart className="size-4" /> Save</Button>
-                <Button variant="glass"><MessageCircle className="size-4" /> Open chat</Button>
+                <Button
+                  variant="warm"
+                  disabled={isJoined}
+                  onClick={() => joinEvent(selectedEvent.id)}
+                >
+                  <Users className="size-4" /> {isJoined ? "Joined" : "Join trip"}
+                </Button>
+                <Button variant="glass" onClick={() => toggleSave(selectedEvent.id)}>
+                  <Heart className={cn("size-4", isSaved && "fill-terracotta text-terracotta")} />{" "}
+                  {isSaved ? "Saved" : "Save"}
+                </Button>
+                <Button variant="glass" disabled title="Event chat arrives with accounts (Phase 3)">
+                  <MessageCircle className="size-4" /> Open chat
+                </Button>
               </div>
             </div>
           </div>
@@ -762,23 +975,80 @@ function MapSkeleton() {
 }
 
 function MobileEventDrawer({ open }: { open: boolean }) {
-  const { selectedEvent } = useGlobeTrotter();
+  const {
+    selectedEvent,
+    setSelectedEventId,
+    joinEvent,
+    joinedEventIds,
+    savedEventIds,
+    toggleSave,
+  } = useGlobeTrotter();
+  const isJoined = selectedEvent ? joinedEventIds.includes(selectedEvent.id) : false;
+  const isSaved = selectedEvent ? savedEventIds.includes(selectedEvent.id) : false;
 
   return (
-    <Drawer open={open} modal={false}>
+    <Drawer
+      open={open}
+      modal={false}
+      onOpenChange={(nextOpen) => {
+        if (!nextOpen) setSelectedEventId("");
+      }}
+    >
       <DrawerContent className="max-h-[64vh] border-glass-border bg-card/95 shadow-glass backdrop-blur-2xl lg:hidden">
         {selectedEvent ? (
           <>
             <DrawerHeader>
-              <DrawerTitle className="font-display text-2xl">{selectedEvent.title}</DrawerTitle>
-              <DrawerDescription>{selectedEvent.city}, {selectedEvent.country} · {selectedEvent.date}</DrawerDescription>
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <DrawerTitle className="font-display text-2xl">{selectedEvent.title}</DrawerTitle>
+                  <DrawerDescription>
+                    {selectedEvent.city}, {selectedEvent.country} · {selectedEvent.date} ·{" "}
+                    {selectedEvent.time}
+                  </DrawerDescription>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  aria-label="Close details"
+                  onClick={() => setSelectedEventId("")}
+                >
+                  <X className="size-5" />
+                </Button>
+              </div>
             </DrawerHeader>
             <div className="grid gap-4 px-4 pb-6">
-              <img src={selectedEvent.image} alt="" className="h-36 w-full rounded-2xl object-cover" />
+              <img
+                src={selectedEvent.image}
+                alt={selectedEvent.title}
+                className="h-36 w-full rounded-2xl object-cover"
+              />
+              <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
+                <span className="flex items-center gap-1">
+                  <Star className="size-3 text-ochre" /> {selectedEvent.rating}
+                </span>
+                <span className="flex items-center gap-1">
+                  <Users className="size-3" /> {selectedEvent.attendees}/
+                  {selectedEvent.maxAttendees}
+                </span>
+                <span className="rounded-full bg-sage/15 px-2 py-1 font-semibold text-sage">
+                  {selectedEvent.price === 0
+                    ? "Free"
+                    : `${selectedEvent.price} ${selectedEvent.currency}`}
+                </span>
+              </div>
               <p className="text-sm leading-6 text-muted-foreground">{selectedEvent.description}</p>
               <div className="grid grid-cols-2 gap-2">
-                <Button variant="warm"><Users className="size-4" /> Join</Button>
-                <Button variant="outline"><Heart className="size-4" /> Save</Button>
+                <Button
+                  variant="warm"
+                  disabled={isJoined}
+                  onClick={() => joinEvent(selectedEvent.id)}
+                >
+                  <Users className="size-4" /> {isJoined ? "Joined" : "Join"}
+                </Button>
+                <Button variant="outline" onClick={() => toggleSave(selectedEvent.id)}>
+                  <Heart className={cn("size-4", isSaved && "fill-terracotta text-terracotta")} />{" "}
+                  {isSaved ? "Saved" : "Save"}
+                </Button>
               </div>
             </div>
           </>
@@ -790,12 +1060,21 @@ function MobileEventDrawer({ open }: { open: boolean }) {
 
 function MobileBottomNav() {
   return (
-    <nav className="fixed inset-x-3 bottom-3 z-50 rounded-2xl border border-glass-border bg-glass p-2 shadow-glass backdrop-blur-2xl lg:hidden" aria-label="Mobile navigation">
+    <nav
+      className="fixed inset-x-3 bottom-3 z-50 rounded-2xl border border-glass-border bg-glass p-2 shadow-glass backdrop-blur-2xl lg:hidden"
+      aria-label="Mobile navigation"
+    >
       <div className="grid grid-cols-5 gap-1">
         {navItems.map((item) => {
           const Icon = item.icon;
           return (
-            <Button key={item.label} variant="nav" size="icon" aria-label={item.label}>
+            <Button
+              key={item.label}
+              variant="nav"
+              size="icon"
+              aria-label={item.label}
+              onClick={() => scrollToSection(item.target)}
+            >
               <Icon className="size-5" />
             </Button>
           );

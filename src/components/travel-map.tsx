@@ -63,7 +63,11 @@ function makeClusterIcon(count: number) {
 
 function clusterEvents(events: TravelEvent[], zoom: number): Cluster[] {
   if (zoom >= 5) {
-    return events.map((event) => ({ id: event.id, coordinates: event.coordinates, events: [event] }));
+    return events.map((event) => ({
+      id: event.id,
+      coordinates: event.coordinates,
+      events: [event],
+    }));
   }
 
   const bucketSize = zoom < 3 ? 28 : 14;
@@ -89,7 +93,7 @@ function clusterEvents(events: TravelEvent[], zoom: number): Cluster[] {
   });
 }
 
-function MapController({ selectedEvent }: { selectedEvent?: TravelEvent }) {
+function MapController({ selectedEvent }: { selectedEvent: TravelEvent | undefined }) {
   const map = useMap();
 
   useEffect(() => {
@@ -150,6 +154,57 @@ function ZoomWatcher({ onZoom }: { onZoom: (zoom: number) => void }) {
   return null;
 }
 
+function EventPopupContent({ event }: { event: TravelEvent }) {
+  const { joinEvent, joinedEventIds, savedEventIds, toggleSave } = useGlobeTrotter();
+  const isJoined = joinedEventIds.includes(event.id);
+  const isSaved = savedEventIds.includes(event.id);
+
+  return (
+    <div className="w-64 overflow-hidden rounded-md bg-popover font-sans text-popover-foreground">
+      <img src={event.image} alt={event.title} className="h-28 w-full object-cover" />
+      <div className="space-y-3 p-3">
+        <div>
+          <p className="text-xs font-medium uppercase text-terracotta">{event.category}</p>
+          <h3 className="mt-1 text-base font-semibold">{event.title}</h3>
+          <p className="mt-1 flex items-center gap-1 text-xs text-muted-foreground">
+            <MapPin className="size-3" /> {event.city}, {event.country}
+          </p>
+        </div>
+        <div className="grid grid-cols-3 gap-2 text-xs text-muted-foreground">
+          <span className="flex items-center gap-1">
+            <Star className="size-3 text-ochre" /> {event.rating}
+          </span>
+          <span className="flex items-center gap-1">
+            <CalendarDays className="size-3" /> {event.date}
+          </span>
+          <span className="flex items-center gap-1">
+            <Users className="size-3" /> {event.attendees}
+          </span>
+        </div>
+        <div className="flex gap-2">
+          <Button
+            size="sm"
+            variant="warm"
+            className="flex-1"
+            disabled={isJoined}
+            onClick={() => joinEvent(event.id)}
+          >
+            {isJoined ? "Joined" : "Join"}
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            className="flex-1"
+            onClick={() => toggleSave(event.id)}
+          >
+            {isSaved ? "Saved" : "Save"}
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function TravelMap() {
   const {
     filteredEvents,
@@ -174,13 +229,25 @@ export default function TravelMap() {
       className="globetrotter-map"
       zoomControl={false}
     >
-      <TileLayer key={mapStyle} url={layer.url} attribution={layer.attribution} className={layer.className} />
+      <TileLayer
+        key={mapStyle}
+        url={layer.url}
+        attribution={layer.attribution}
+        className={layer.className}
+      />
       <ZoomWatcher onZoom={setZoom} />
       <MapController selectedEvent={selectedEvent} />
 
       {clusters.map((cluster) => {
         if (cluster.events.length > 1) {
-          return <ClusterMarker key={cluster.id} cluster={cluster} zoom={zoom} onSelect={setSelectedEventId} />;
+          return (
+            <ClusterMarker
+              key={cluster.id}
+              cluster={cluster}
+              zoom={zoom}
+              onSelect={setSelectedEventId}
+            />
+          );
         }
 
         const event = cluster.events[0];
@@ -194,27 +261,7 @@ export default function TravelMap() {
             eventHandlers={{ click: () => setSelectedEventId(event.id) }}
           >
             <Popup>
-              <div className="w-64 overflow-hidden rounded-md bg-popover font-sans text-popover-foreground">
-                <img src={event.image} alt="" className="h-28 w-full object-cover" />
-                <div className="space-y-3 p-3">
-                  <div>
-                    <p className="text-xs font-medium uppercase text-terracotta">{event.category}</p>
-                    <h3 className="mt-1 text-base font-semibold">{event.title}</h3>
-                    <p className="mt-1 flex items-center gap-1 text-xs text-muted-foreground">
-                      <MapPin className="size-3" /> {event.city}, {event.country}
-                    </p>
-                  </div>
-                  <div className="grid grid-cols-3 gap-2 text-xs text-muted-foreground">
-                    <span className="flex items-center gap-1"><Star className="size-3 text-ochre" /> {event.rating}</span>
-                    <span className="flex items-center gap-1"><CalendarDays className="size-3" /> {event.date}</span>
-                    <span className="flex items-center gap-1"><Users className="size-3" /> {event.attendees}</span>
-                  </div>
-                  <div className="flex gap-2">
-                    <Button size="sm" variant="warm" className="flex-1">Join</Button>
-                    <Button size="sm" variant="outline" className="flex-1">Save</Button>
-                  </div>
-                </div>
-              </div>
+              <EventPopupContent event={event} />
             </Popup>
           </Marker>
         );
@@ -224,11 +271,19 @@ export default function TravelMap() {
         travelers
           .filter((traveler) => traveler.openToMeet)
           .map((traveler) => (
-            <Marker key={traveler.id} position={traveler.coordinates} icon={makeTravelerIcon(traveler.openToMeet)}>
+            <Marker
+              key={traveler.id}
+              position={traveler.coordinates}
+              icon={makeTravelerIcon(traveler.openToMeet)}
+            >
               <Popup>
                 <div className="w-48 space-y-2 font-sans text-popover-foreground">
                   <div className="flex items-center gap-2">
-                    <img src={traveler.avatar} alt="" className="size-10 rounded-full object-cover" />
+                    <img
+                      src={traveler.avatar}
+                      alt={traveler.name}
+                      className="size-10 rounded-full object-cover"
+                    />
                     <div>
                       <p className="font-semibold">{traveler.name}</p>
                       <p className="text-xs text-muted-foreground">Open to meet nearby</p>

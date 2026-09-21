@@ -1,16 +1,35 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+  type ReactNode,
+} from "react";
 import type { Session } from "@supabase/supabase-js";
 
 import { supabase } from "@/integrations/supabase/client";
-import { categories, feedItems, travelEvents, travelers, type EventCategory, type FeedItem, type TravelEvent } from "@/lib/globetrotter-data";
+import {
+  categories,
+  feedItems,
+  travelEvents,
+  travelers,
+  type EventCategory,
+  type FeedItem,
+  type TravelEvent,
+} from "@/lib/globetrotter-data";
 
 type MapStyle = "Vintage Travel" | "Dark Minimal" | "Satellite";
 type ViewMode = "list" | "grid";
 type ThemeMode = "light" | "dark";
 
-type DraftEvent = Pick<TravelEvent, "title" | "city" | "country" | "category" | "date" | "time" | "price" | "description"> & {
+type DraftEvent = Pick<
+  TravelEvent,
+  "title" | "city" | "country" | "category" | "date" | "time" | "price" | "description"
+> & {
   coordinates: [number, number];
-  coverPreview?: string;
+  coverPreview?: string | undefined;
 };
 
 type GlobeTrotterState = {
@@ -20,7 +39,7 @@ type GlobeTrotterState = {
   categories: EventCategory[];
   activeCategories: EventCategory[];
   selectedEventId: string;
-  selectedEvent?: TravelEvent;
+  selectedEvent: TravelEvent | undefined;
   mapStyle: MapStyle;
   viewMode: ViewMode;
   theme: ThemeMode;
@@ -29,6 +48,9 @@ type GlobeTrotterState = {
   radarEnabled: boolean;
   feed: FeedItem[];
   session: Session | null;
+  searchQuery: string;
+  savedEventIds: string[];
+  joinedEventIds: string[];
   setSelectedEventId: (eventId: string) => void;
   toggleCategory: (category: EventCategory) => void;
   clearFilters: () => void;
@@ -38,6 +60,9 @@ type GlobeTrotterState = {
   setRadiusKm: (radius: number) => void;
   setMaxPrice: (price: number) => void;
   setRadarEnabled: (enabled: boolean) => void;
+  setSearchQuery: (query: string) => void;
+  toggleSave: (eventId: string) => void;
+  joinEvent: (eventId: string) => void;
   addEvent: (event: DraftEvent) => void;
 };
 
@@ -45,7 +70,10 @@ const GlobeTrotterContext = createContext<GlobeTrotterState | undefined>(undefin
 
 export function GlobeTrotterProvider({ children }: { children: ReactNode }) {
   const [createdEvents, setCreatedEvents] = useState<TravelEvent[]>([]);
-  const [selectedEventId, setSelectedEventId] = useState(travelEvents[0]?.id ?? "");
+  const [selectedEventId, setSelectedEventId] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [savedEventIds, setSavedEventIds] = useState<string[]>([]);
+  const [joinedEventIds, setJoinedEventIds] = useState<string[]>([]);
   const [activeCategories, setActiveCategories] = useState<EventCategory[]>(categories);
   const [mapStyle, setMapStyle] = useState<MapStyle>("Vintage Travel");
   const [viewMode, setViewMode] = useState<ViewMode>("list");
@@ -89,37 +117,54 @@ export function GlobeTrotterProvider({ children }: { children: ReactNode }) {
       setFeed((current) => {
         const [first, ...rest] = current;
         if (!first) return current;
-        return [...rest, { ...first, id: `${first.id}-${Date.now()}`, minutesAgo: 1 }].map((item, index) => ({
-          ...item,
-          minutesAgo: index === current.length - 1 ? 1 : item.minutesAgo + 3,
-        }));
+        return [...rest, { ...first, id: `${first.id}-${Date.now()}`, minutesAgo: 1 }].map(
+          (item, index) => ({
+            ...item,
+            minutesAgo: index === current.length - 1 ? 1 : item.minutesAgo + 3,
+          }),
+        );
       });
     }, 9000);
 
     return () => window.clearInterval(timer);
   }, []);
 
-  const allEvents = useMemo(() => [...createdEvents, ...travelEvents], [createdEvents]);
+  const allEvents = useMemo(() => {
+    const withJoins = [...createdEvents, ...travelEvents].map((event) =>
+      joinedEventIds.includes(event.id)
+        ? { ...event, attendees: Math.min(event.attendees + 1, event.maxAttendees) }
+        : event,
+    );
+    return withJoins;
+  }, [createdEvents, joinedEventIds]);
 
-  const filteredEvents = useMemo(
-    () =>
-      allEvents.filter(
-        (event) =>
-          activeCategories.includes(event.category) && event.distanceKm <= radiusKm && event.price <= maxPrice,
-      ),
-    [activeCategories, allEvents, maxPrice, radiusKm],
-  );
+  const filteredEvents = useMemo(() => {
+    const query = searchQuery.trim().toLowerCase();
+    return allEvents.filter((event) => {
+      const matchesFilters =
+        activeCategories.includes(event.category) &&
+        event.distanceKm <= radiusKm &&
+        event.price <= maxPrice;
+      if (!matchesFilters) return false;
+      if (!query) return true;
+      const haystack = [
+        event.title,
+        event.city,
+        event.country,
+        event.category,
+        event.description,
+        ...event.tags,
+      ]
+        .join(" ")
+        .toLowerCase();
+      return haystack.includes(query);
+    });
+  }, [activeCategories, allEvents, maxPrice, radiusKm, searchQuery]);
 
   const selectedEvent = useMemo(
-    () => allEvents.find((event) => event.id === selectedEventId) ?? filteredEvents[0],
-    [allEvents, filteredEvents, selectedEventId],
+    () => allEvents.find((event) => event.id === selectedEventId),
+    [allEvents, selectedEventId],
   );
-
-  useEffect(() => {
-    if (!selectedEvent && filteredEvents[0]) {
-      setSelectedEventId(filteredEvents[0].id);
-    }
-  }, [filteredEvents, selectedEvent]);
 
   const toggleCategory = useCallback((category: EventCategory) => {
     setActiveCategories((current) => {
@@ -135,11 +180,39 @@ export function GlobeTrotterProvider({ children }: { children: ReactNode }) {
     setActiveCategories(categories);
     setRadiusKm(25);
     setMaxPrice(90);
+    setSearchQuery("");
   }, []);
 
   const setTheme = useCallback((nextTheme: ThemeMode) => {
     setThemeState(nextTheme);
   }, []);
+
+  const toggleSave = useCallback((eventId: string) => {
+    setSavedEventIds((current) =>
+      current.includes(eventId) ? current.filter((id) => id !== eventId) : [...current, eventId],
+    );
+  }, []);
+
+  const joinEvent = useCallback(
+    (eventId: string) => {
+      if (joinedEventIds.includes(eventId)) return;
+      setJoinedEventIds((current) => [...current, eventId]);
+      const target = allEvents.find((event) => event.id === eventId);
+      if (target) {
+        setFeed((current) => [
+          {
+            id: `joined-${eventId}-${Date.now()}`,
+            actor: "You",
+            action: "joined",
+            place: target.title,
+            minutesAgo: 1,
+          },
+          ...current.slice(0, 5),
+        ]);
+      }
+    },
+    [allEvents, joinedEventIds],
+  );
 
   const addEvent = useCallback((event: DraftEvent) => {
     const newEvent: TravelEvent = {
@@ -159,7 +232,13 @@ export function GlobeTrotterProvider({ children }: { children: ReactNode }) {
     setCreatedEvents((current) => [newEvent, ...current]);
     setSelectedEventId(newEvent.id);
     setFeed((current) => [
-      { id: `created-${newEvent.id}`, actor: "You", action: "created", place: newEvent.title, minutesAgo: 1 },
+      {
+        id: `created-${newEvent.id}`,
+        actor: "You",
+        action: "created",
+        place: newEvent.title,
+        minutesAgo: 1,
+      },
       ...current.slice(0, 5),
     ]);
   }, []);
@@ -181,6 +260,9 @@ export function GlobeTrotterProvider({ children }: { children: ReactNode }) {
       radarEnabled,
       feed,
       session,
+      searchQuery,
+      savedEventIds,
+      joinedEventIds,
       setSelectedEventId,
       toggleCategory,
       clearFilters,
@@ -190,6 +272,9 @@ export function GlobeTrotterProvider({ children }: { children: ReactNode }) {
       setRadiusKm,
       setMaxPrice,
       setRadarEnabled,
+      setSearchQuery,
+      toggleSave,
+      joinEvent,
       addEvent,
     }),
     [
@@ -205,9 +290,15 @@ export function GlobeTrotterProvider({ children }: { children: ReactNode }) {
       selectedEvent,
       selectedEventId,
       session,
+      searchQuery,
+      savedEventIds,
+      joinedEventIds,
       setTheme,
       toggleCategory,
       viewMode,
+      setSearchQuery,
+      toggleSave,
+      joinEvent,
       addEvent,
     ],
   );
