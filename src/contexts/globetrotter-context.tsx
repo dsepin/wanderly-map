@@ -65,10 +65,19 @@ type GlobeTrotterState = {
   mapCenter: [number, number];
   createOpen: boolean;
   createCoordinates: [number, number];
+  remindEventIds: string[];
+  requestEventIds: string[];
+  approvedEventIds: string[];
+  chatEventId: string;
   setMapCenter: (center: [number, number]) => void;
   setPickMode: (pickMode: boolean) => void;
   setCreateOpen: (open: boolean) => void;
   setCreateCoordinates: (coords: [number, number]) => void;
+  toggleRemind: (eventId: string) => void;
+  sendJoinRequest: (eventId: string) => void;
+  approveJoinRequest: (eventId: string) => void;
+  openChat: (eventId: string) => void;
+  closeChat: () => void;
   setSelectedEventId: (eventId: string) => void;
   toggleCategory: (category: EventCategory) => void;
   clearFilters: () => void;
@@ -113,6 +122,10 @@ export function GlobeTrotterProvider({ children }: { children: ReactNode }) {
   const [mapCenter, setMapCenter] = useState<[number, number]>([22, 18]);
   const [createOpen, setCreateOpen] = useState(false);
   const [createCoordinates, setCreateCoordinates] = useState<[number, number]>([41.0082, 28.9784]);
+  const [remindEventIds, setRemindEventIds] = useState<string[]>([]);
+  const [requestEventIds, setRequestEventIds] = useState<string[]>([]);
+  const [approvedEventIds, setApprovedEventIds] = useState<string[]>([]);
+  const [chatEventId, setChatEventId] = useState("");
 
   useEffect(() => {
     const savedTheme = window.localStorage.getItem("globetrotter-theme");
@@ -342,6 +355,46 @@ export function GlobeTrotterProvider({ children }: { children: ReactNode }) {
     [hostRequestIds],
   );
 
+  const toggleRemind = useCallback((eventId: string) => {
+    setRemindEventIds((current) =>
+      current.includes(eventId) ? current.filter((id) => id !== eventId) : [...current, eventId],
+    );
+  }, []);
+
+  const sendJoinRequest = useCallback(
+    (eventId: string) => {
+      if (requestEventIds.includes(eventId)) return;
+      setRequestEventIds((current) => [...current, eventId]);
+      const target = allEvents.find((event) => event.id === eventId);
+      if (target) {
+        setFeed((current) => [
+          {
+            id: `request-${eventId}-${Date.now()}`,
+            actor: "You",
+            action: "sent a stay request to",
+            place: target.title,
+            minutesAgo: 1,
+          },
+          ...current.slice(0, 5),
+        ]);
+      }
+    },
+    [allEvents, requestEventIds],
+  );
+
+  const approveJoinRequest = useCallback((eventId: string) => {
+    setApprovedEventIds((current) => (current.includes(eventId) ? current : [...current, eventId]));
+    setChatEventId(eventId);
+  }, []);
+
+  const openChat = useCallback((eventId: string) => {
+    setChatEventId(eventId);
+  }, []);
+
+  const closeChat = useCallback(() => {
+    setChatEventId("");
+  }, []);
+
   const addEvent = useCallback((event: DraftEvent) => {
     const newEvent: TravelEvent = {
       ...event,
@@ -396,10 +449,19 @@ export function GlobeTrotterProvider({ children }: { children: ReactNode }) {
       mapCenter,
       createOpen,
       createCoordinates,
+      remindEventIds,
+      requestEventIds,
+      approvedEventIds,
+      chatEventId,
       setMapCenter,
       setPickMode,
       setCreateOpen,
       setCreateCoordinates,
+      toggleRemind,
+      sendJoinRequest,
+      approveJoinRequest,
+      openChat,
+      closeChat,
       setSelectedEventId,
       toggleCategory,
       clearFilters,
@@ -442,10 +504,19 @@ export function GlobeTrotterProvider({ children }: { children: ReactNode }) {
       mapCenter,
       createOpen,
       createCoordinates,
+      remindEventIds,
+      requestEventIds,
+      approvedEventIds,
+      chatEventId,
       setMapCenter,
       setPickMode,
       setCreateOpen,
       setCreateCoordinates,
+      toggleRemind,
+      sendJoinRequest,
+      approveJoinRequest,
+      openChat,
+      closeChat,
       facetCount,
       totalFacetCount,
       setTheme,

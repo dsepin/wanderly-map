@@ -1,6 +1,7 @@
 import { ClientOnly } from "@tanstack/react-router";
 import {
   Bell,
+  BellRing,
   CalendarDays,
   ChevronDown,
   Compass,
@@ -23,6 +24,7 @@ import {
   Radar,
   Route,
   Search,
+  Send,
   Star,
   Sun,
   UserRound,
@@ -122,6 +124,7 @@ function GlobeTrotterExperience() {
           event={selectedEvent}
           onClose={() => setVenueOpen(false)}
         />
+        <EventChatDialog />
         <MobileBottomNav />
       </div>
     </main>
@@ -1273,9 +1276,19 @@ function MapStage({ onVenueOpen }: { onVenueOpen: () => void }) {
     joinedEventIds,
     savedEventIds,
     toggleSave,
+    remindEventIds,
+    requestEventIds,
+    approvedEventIds,
+    toggleRemind,
+    sendJoinRequest,
+    approveJoinRequest,
+    openChat,
   } = useGlobeTrotter();
   const isJoined = selectedEvent ? joinedEventIds.includes(selectedEvent.id) : false;
   const isSaved = selectedEvent ? savedEventIds.includes(selectedEvent.id) : false;
+  const isReminded = selectedEvent ? remindEventIds.includes(selectedEvent.id) : false;
+  const isRequested = selectedEvent ? requestEventIds.includes(selectedEvent.id) : false;
+  const isApproved = selectedEvent ? approvedEventIds.includes(selectedEvent.id) : false;
 
   return (
     <section
@@ -1379,9 +1392,38 @@ function MapStage({ onVenueOpen }: { onVenueOpen: () => void }) {
                     <MapPin className="size-4" /> Mekan Detayı
                   </Button>
                 ) : null}
-                <Button variant="glass" disabled title="Event chat arrives with accounts (Phase 3)">
-                  <MessageCircle className="size-4" /> Open chat
+              </div>
+              <div className="flex flex-wrap gap-2 border-t border-border/60 pt-3">
+                <Button
+                  variant="glass"
+                  onClick={() => sendJoinRequest(selectedEvent.id)}
+                  disabled={isRequested || isApproved}
+                >
+                  <Send className="size-4" />
+                  {isApproved ? "Onaylandı ✓" : isRequested ? "İstek gönderildi" : "İstek Yolla"}
                 </Button>
+                <Button variant="glass" onClick={() => toggleRemind(selectedEvent.id)}>
+                  <BellRing className={cn("size-4", isReminded && "text-terracotta")} />
+                  {isReminded ? "Hatırlatıldı" : "Hatırlat"}
+                </Button>
+                <Button
+                  variant="glass"
+                  onClick={() => openChat(selectedEvent.id)}
+                  disabled={!isApproved}
+                  title={isApproved ? "Sohbeti aç" : "Onaydan sonra açılır"}
+                >
+                  <MessageCircle className="size-4" /> Chat
+                </Button>
+                {isRequested && !isApproved ? (
+                  <button
+                    type="button"
+                    className="flex w-full items-center gap-2 rounded-xl border border-dashed border-sage/50 px-3 py-2 text-xs text-sage transition hover:bg-sage/10"
+                    onClick={() => approveJoinRequest(selectedEvent.id)}
+                  >
+                    <UserRound className="size-3.5" />
+                    Organizatör yanıtlıyor… (Onayı simüle et)
+                  </button>
+                ) : null}
               </div>
             </div>
           </div>
@@ -1410,9 +1452,19 @@ function MobileEventDrawer({ open, onVenueOpen }: { open: boolean; onVenueOpen: 
     joinedEventIds,
     savedEventIds,
     toggleSave,
+    remindEventIds,
+    requestEventIds,
+    approvedEventIds,
+    toggleRemind,
+    sendJoinRequest,
+    approveJoinRequest,
+    openChat,
   } = useGlobeTrotter();
   const isJoined = selectedEvent ? joinedEventIds.includes(selectedEvent.id) : false;
   const isSaved = selectedEvent ? savedEventIds.includes(selectedEvent.id) : false;
+  const isReminded = selectedEvent ? remindEventIds.includes(selectedEvent.id) : false;
+  const isRequested = selectedEvent ? requestEventIds.includes(selectedEvent.id) : false;
+  const isApproved = selectedEvent ? approvedEventIds.includes(selectedEvent.id) : false;
 
   return (
     <Drawer
@@ -1480,6 +1532,36 @@ function MobileEventDrawer({ open, onVenueOpen }: { open: boolean; onVenueOpen: 
                 {selectedEvent.venue ? (
                   <Button variant="outline" className="col-span-2" onClick={onVenueOpen}>
                     <MapPin className="size-4" /> Mekan Detayı
+                  </Button>
+                ) : null}
+                <Button
+                  variant="outline"
+                  onClick={() => sendJoinRequest(selectedEvent.id)}
+                  disabled={isRequested || isApproved}
+                >
+                  <Send className="size-4" />
+                  {isApproved ? "Onaylandı ✓" : isRequested ? "İstek gönderildi" : "İstek Yolla"}
+                </Button>
+                <Button variant="outline" onClick={() => toggleRemind(selectedEvent.id)}>
+                  <BellRing className={cn("size-4", isReminded && "text-terracotta")} />
+                  {isReminded ? "Hatırlatıldı" : "Hatırlat"}
+                </Button>
+                {isRequested && !isApproved ? (
+                  <Button
+                    variant="outline"
+                    className="col-span-2"
+                    onClick={() => approveJoinRequest(selectedEvent.id)}
+                  >
+                    <UserRound className="size-4" /> Organizatör onayını simüle et
+                  </Button>
+                ) : null}
+                {isApproved ? (
+                  <Button
+                    variant="outline"
+                    className="col-span-2"
+                    onClick={() => openChat(selectedEvent.id)}
+                  >
+                    <MessageCircle className="size-4" /> Sohbeti aç
                   </Button>
                 ) : null}
               </div>
@@ -1603,6 +1685,104 @@ function VenueDetailDialog({
             Bu etkinliğin henüz mekan bilgisi eklenmedi.
           </p>
         )}
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function EventChatDialog() {
+  const { chatEventId, closeChat, allEvents, travelers } = useGlobeTrotter();
+  const [messages, setMessages] = useState<{ from: "user" | "host"; text: string }[]>([]);
+  const [draftText, setDraftText] = useState("");
+  const event = allEvents.find((item) => item.id === chatEventId);
+  const host = event ? travelers.find((t) => t.id === event.hostId) : undefined;
+
+  const open = Boolean(event && host);
+
+  const handleSend = (text: string) => {
+    const trimmed = text.trim();
+    if (!trimmed) return;
+    setMessages((current) => [...current, { from: "user", text: trimmed }]);
+    setDraftText("");
+    // Organizatörün basit otomatik yanıtı
+    window.setTimeout(() => {
+      setMessages((current) => [
+        ...current,
+        {
+          from: "host",
+          text: `${host?.name ?? "Organizatör"}: Harika! ${event?.title} için seni bekliyoruz. 🌍`,
+        },
+      ]);
+    }, 900);
+  };
+
+  const handleOpenChange = (next: boolean) => {
+    if (!next) {
+      closeChat();
+      setMessages([]);
+      return;
+    }
+    if (messages.length === 0) {
+      setMessages([
+        {
+          from: "host",
+          text: `${host?.name ?? "Organizatör"}: Merhaba! ${event?.title} hakkında soruların varsa buraya yazabilirsin.`,
+        },
+      ]);
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={handleOpenChange}>
+      <DialogContent className="border-glass-border bg-card/95 shadow-glass backdrop-blur-2xl sm:max-w-md">
+        <DialogHeader>
+          <div className="flex items-center gap-3">
+            <img
+              src={host?.avatar}
+              alt=""
+              className="size-11 rounded-full border-2 border-sage object-cover"
+            />
+            <div className="min-w-0">
+              <DialogTitle className="font-display text-xl">
+                {host?.name ?? "Organizatör"}
+              </DialogTitle>
+              <DialogDescription className="truncate">{event?.title}</DialogDescription>
+            </div>
+          </div>
+        </DialogHeader>
+        <div className="flex max-h-64 flex-col gap-2 overflow-y-auto pr-1">
+          {messages.map((message, index) => (
+            <div
+              key={index}
+              className={cn(
+                "max-w-[85%] rounded-2xl px-3 py-2 text-sm",
+                message.from === "user"
+                  ? "self-end bg-terracotta text-terracotta-foreground"
+                  : "self-start bg-muted text-foreground",
+              )}
+            >
+              {message.text}
+            </div>
+          ))}
+        </div>
+        <form
+          className="flex gap-2"
+          onSubmit={(event) => {
+            event.preventDefault();
+            handleSend(draftText);
+          }}
+        >
+          <input
+            aria-label="Sehkiz mesaj"
+            className="h-11 min-w-0 flex-1 rounded-xl border border-input bg-background px-3 text-sm outline-none ring-offset-background transition focus:ring-2 focus:ring-ring"
+            placeholder="Mesaj yaz…"
+            value={draftText}
+            onChange={(e) => setDraftText(e.target.value)}
+          />
+          <Button type="submit" variant="warm" size="icon" aria-label="Gönder">
+            <Send className="size-4" />
+          </Button>
+        </form>
       </DialogContent>
     </Dialog>
   );

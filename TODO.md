@@ -41,12 +41,12 @@
 - `[x]` **T12 — 12+ mock etkinlik:** İstanbul çevresine 5 yeni etkinlik (toplam 15).
 - `[x]` **T13 — Mekan detayı:** canlı doluluk sayacı, masa krokisi (dolu/boş),
   menü kartı, yorum + beğeni/puan.
-- `[>]` **T14 — İstek Yolla / Kaydet / Hatırlat:** istek → organizatör onayı →
-  anlık mesajlaşma açılır.
+- `[x]` **T14 — İstek Yolla / Kaydet / Hatırlat:** istek → organizatör onayı →
+  onay sonrası chat açılır (simülasyon).
+- `[>]` **T15 — Story'ler:** mekândan anlık story paylaşımı + görüntüleyici.
 
 ## Faz 5 — Sosyal + grup
 
-- `[ ]` **T15 — Story'ler:** mekândan anlık story paylaşımı + görüntüleyici.
 - `[ ]` **T16 — Yakın arkadaş + anket + lider:** toggle, bildirim, ret nedenleri
   (Menü/Kalabalık/Bütçe/Konum), lider ekranında oylar.
 - `[ ]` **T17 — 6+ kişi grup indirimi:** mekâna bildirim + özel teklif akışı.
