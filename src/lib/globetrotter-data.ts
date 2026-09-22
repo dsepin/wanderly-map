@@ -1,11 +1,5 @@
 export type EventCategory =
-  | "Nightlife"
-  | "Hiking"
-  | "Cultural"
-  | "Foodie"
-  | "Budget"
-  | "Extreme"
-  | "Wellness";
+  "Nightlife" | "Hiking" | "Cultural" | "Foodie" | "Budget" | "Extreme" | "Wellness";
 
 export type TravelEvent = {
   id: string;
@@ -65,7 +59,8 @@ export const travelers: TravelerProfile[] = [
     id: "maya",
     name: "Maya Chen",
     handle: "maya.moves",
-    avatar: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=400&q=80",
+    avatar:
+      "https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=400&q=80",
     location: "Tokyo, Japan",
     coordinates: [35.6762, 139.6503],
     countriesVisited: 34,
@@ -78,7 +73,8 @@ export const travelers: TravelerProfile[] = [
     id: "leo",
     name: "Leo Alvarez",
     handle: "leo.alpine",
-    avatar: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=400&q=80",
+    avatar:
+      "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=400&q=80",
     location: "Banff, Canada",
     coordinates: [51.1784, -115.5708],
     countriesVisited: 22,
@@ -91,7 +87,8 @@ export const travelers: TravelerProfile[] = [
     id: "amina",
     name: "Amina Benali",
     handle: "amina.routes",
-    avatar: "https://images.unsplash.com/photo-1531123897727-8f129e1688ce?auto=format&fit=crop&w=400&q=80",
+    avatar:
+      "https://images.unsplash.com/photo-1531123897727-8f129e1688ce?auto=format&fit=crop&w=400&q=80",
     location: "Marrakech, Morocco",
     coordinates: [31.6295, -7.9811],
     countriesVisited: 41,
@@ -104,7 +101,8 @@ export const travelers: TravelerProfile[] = [
     id: "noah",
     name: "Noah Reed",
     handle: "noah.nowhere",
-    avatar: "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&w=400&q=80",
+    avatar:
+      "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&w=400&q=80",
     location: "Reykjavik, Iceland",
     coordinates: [64.1466, -21.9426],
     countriesVisited: 18,
@@ -117,7 +115,8 @@ export const travelers: TravelerProfile[] = [
     id: "sofia",
     name: "Sofia Marino",
     handle: "sofia.sundays",
-    avatar: "https://images.unsplash.com/photo-1524504388940-b1c1722653e1?auto=format&fit=crop&w=400&q=80",
+    avatar:
+      "https://images.unsplash.com/photo-1524504388940-b1c1722653e1?auto=format&fit=crop&w=400&q=80",
     location: "Lisbon, Portugal",
     coordinates: [38.7223, -9.1393],
     countriesVisited: 29,
@@ -144,7 +143,8 @@ export const travelEvents: TravelEvent[] = [
     maxAttendees: 24,
     distanceKm: 1.6,
     coordinates: [-8.65, 115.138],
-    image: "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=900&q=80",
+    image:
+      "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=900&q=80",
     hostId: "sofia",
     tags: ["Beach", "Breathwork", "Beginner"],
     description: "Golden-hour flow, coconut breakfast, and a quiet swim before the cafes open.",
@@ -164,10 +164,12 @@ export const travelEvents: TravelEvent[] = [
     maxAttendees: 12,
     distanceKm: 3.2,
     coordinates: [35.6938, 139.7034],
-    image: "https://images.unsplash.com/photo-1540959733332-eab4deabeeaf?auto=format&fit=crop&w=900&q=80",
+    image:
+      "https://images.unsplash.com/photo-1540959733332-eab4deabeeaf?auto=format&fit=crop&w=900&q=80",
     hostId: "maya",
     tags: ["Ramen", "Izakaya", "Late night"],
-    description: "A tiny-lanes tasting route through yakitori counters, vending gems, and dessert bars.",
+    description:
+      "A tiny-lanes tasting route through yakitori counters, vending gems, and dessert bars.",
   },
   {
     id: "lisbon-fado",
@@ -184,7 +186,8 @@ export const travelEvents: TravelEvent[] = [
     maxAttendees: 16,
     distanceKm: 2.1,
     coordinates: [38.7139, -9.1394],
-    image: "https://images.unsplash.com/photo-1555881400-74d7acaacd8b?auto=format&fit=crop&w=900&q=80",
+    image:
+      "https://images.unsplash.com/photo-1555881400-74d7acaacd8b?auto=format&fit=crop&w=900&q=80",
     hostId: "sofia",
     tags: ["Music", "Architecture", "Local guide"],
     description: "Follow tiled alleys into Alfama, then settle into a candlelit fado house.",
@@ -204,7 +207,8 @@ export const travelEvents: TravelEvent[] = [
     maxAttendees: 10,
     distanceKm: 8.5,
     coordinates: [51.4968, -115.9281],
-    image: "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=900&q=80",
+    image:
+      "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=900&q=80",
     hostId: "leo",
     tags: ["Trail", "Lake", "Photography"],
     description: "A crisp alpine climb timed for first light over turquoise water.",
@@ -224,7 +228,8 @@ export const travelEvents: TravelEvent[] = [
     maxAttendees: 18,
     distanceKm: 4.4,
     coordinates: [17.0732, -96.7266],
-    image: "https://images.unsplash.com/photo-1512813195386-6cf811ad3542?auto=format&fit=crop&w=900&q=80",
+    image:
+      "https://images.unsplash.com/photo-1512813195386-6cf811ad3542?auto=format&fit=crop&w=900&q=80",
     hostId: "amina",
     tags: ["Market", "Mezcal", "Street food"],
     description: "Taste smoky pours, tlayudas, and handmade chocolate around the evening market.",
@@ -244,10 +249,12 @@ export const travelEvents: TravelEvent[] = [
     maxAttendees: 14,
     distanceKm: 2.9,
     coordinates: [31.6258, -7.9891],
-    image: "https://images.unsplash.com/photo-1539650116574-75c0c6d73f6e?auto=format&fit=crop&w=900&q=80",
+    image:
+      "https://images.unsplash.com/photo-1539650116574-75c0c6d73f6e?auto=format&fit=crop&w=900&q=80",
     hostId: "amina",
     tags: ["Rooftop", "Cooking", "Medina"],
-    description: "Shop spices with the host, cook tagine together, and dine above the medina lights.",
+    description:
+      "Shop spices with the host, cook tagine together, and dine above the medina lights.",
   },
   {
     id: "reykjavik-aurora",
@@ -264,7 +271,8 @@ export const travelEvents: TravelEvent[] = [
     maxAttendees: 9,
     distanceKm: 12,
     coordinates: [64.1466, -21.9426],
-    image: "https://images.unsplash.com/photo-1500534314209-a25ddb2bd429?auto=format&fit=crop&w=900&q=80",
+    image:
+      "https://images.unsplash.com/photo-1500534314209-a25ddb2bd429?auto=format&fit=crop&w=900&q=80",
     hostId: "noah",
     tags: ["Aurora", "Road trip", "Hot cocoa"],
     description: "A flexible-budget aurora hunt with live cloud checks and warm stops.",
@@ -284,7 +292,8 @@ export const travelEvents: TravelEvent[] = [
     maxAttendees: 8,
     distanceKm: 6.6,
     coordinates: [-33.918, 18.389],
-    image: "https://images.unsplash.com/photo-1580060839134-75a5edca2e99?auto=format&fit=crop&w=900&q=80",
+    image:
+      "https://images.unsplash.com/photo-1580060839134-75a5edca2e99?auto=format&fit=crop&w=900&q=80",
     hostId: "leo",
     tags: ["Adrenaline", "Ocean", "Views"],
     description: "Tandem glide from Signal Hill with a soft landing near the promenade.",
@@ -304,7 +313,8 @@ export const travelEvents: TravelEvent[] = [
     maxAttendees: 30,
     distanceKm: 5.1,
     coordinates: [52.5006, 13.4529],
-    image: "https://images.unsplash.com/photo-1560969184-10fe8719e047?auto=format&fit=crop&w=900&q=80",
+    image:
+      "https://images.unsplash.com/photo-1560969184-10fe8719e047?auto=format&fit=crop&w=900&q=80",
     hostId: "maya",
     tags: ["Gallery", "DJs", "After dark"],
     description: "Pop-up installations, ambient sets, and a late-night walk through Kreuzberg.",
@@ -324,17 +334,149 @@ export const travelEvents: TravelEvent[] = [
     maxAttendees: 16,
     distanceKm: 9.8,
     coordinates: [-13.5319, -71.9675],
-    image: "https://images.unsplash.com/photo-1526392060635-9d6019884377?auto=format&fit=crop&w=900&q=80",
+    image:
+      "https://images.unsplash.com/photo-1526392060635-9d6019884377?auto=format&fit=crop&w=900&q=80",
     hostId: "noah",
     tags: ["Inca trail", "Ruins", "Altitude"],
     description: "A gentle acclimatization trek through terraces, ruins, and valley viewpoints.",
   },
+  {
+    id: "ist-bosphorus-sail",
+    title: "Boğaz Gün Batımı Tekne Turu",
+    city: "İstanbul",
+    country: "Türkiye",
+    category: "Budget",
+    date: "Oct 04",
+    time: "17:30",
+    price: 8,
+    currency: "TRY",
+    rating: 4.8,
+    attendees: 9,
+    maxAttendees: 15,
+    distanceKm: 1.2,
+    coordinates: [41.0422, 29.0073],
+    image:
+      "https://images.unsplash.com/photo-1524231757912-21f4fe3a7200?auto=format&fit=crop&w=900&q=80",
+    hostId: "amina",
+    tags: ["Bosphorus", "Sunset", "Ferry"],
+    description: "Ucuz bir halk vapuru yolculuğu; Boğaz köprüleri altında çayla gün batımı.",
+  },
+  {
+    id: "ist-karakoy-cafe",
+    title: "Karaköy Kahve & Sanat Sabahı",
+    city: "İstanbul",
+    country: "Türkiye",
+    category: "Cultural",
+    date: "Oct 05",
+    time: "10:00",
+    price: 14,
+    currency: "TRY",
+    rating: 4.7,
+    attendees: 6,
+    maxAttendees: 10,
+    distanceKm: 2.4,
+    coordinates: [41.0237, 28.9766],
+    image:
+      "https://images.unsplash.com/photo-1509042239860-f550ce710b93?auto=format&fit=crop&w=900&q=80",
+    hostId: "sofia",
+    tags: ["Coffee", "Gallery", "Walk"],
+    description:
+      "Galata'dan Karaköy'e yürüyüş: bağımsız galeriler ve üçüncü dalga kahve durakları.",
+  },
+  {
+    id: "ist-taksim-night",
+    title: "Taksim Gece Hayatı Turu",
+    city: "İstanbul",
+    country: "Türkiye",
+    category: "Nightlife",
+    date: "Oct 05",
+    time: "22:00",
+    price: 22,
+    currency: "TRY",
+    rating: 4.6,
+    attendees: 11,
+    maxAttendees: 14,
+    distanceKm: 3.7,
+    coordinates: [41.0369, 28.9855],
+    image:
+      "https://images.unsplash.com/photo-1514525253161-7a46d19cd819?auto=format&fit=crop&w=900&q=80",
+    hostId: "maya",
+    tags: ["Bar hop", "DJs", "Live music"],
+    description: "Cihangir'e saklı meyhaneler, canlı müzik ve indie DJ setleriyle gece turu.",
+  },
+  {
+    id: "ist-modacik-yoga",
+    title: "Moda Sahili Güneş Doğumu Yoga",
+    city: "İstanbul",
+    country: "Türkiye",
+    category: "Wellness",
+    date: "Oct 06",
+    time: "06:30",
+    price: 0,
+    currency: "TRY",
+    rating: 4.9,
+    attendees: 8,
+    maxAttendees: 12,
+    distanceKm: 4.9,
+    coordinates: [40.9822, 29.0258],
+    image:
+      "https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?auto=format&fit=crop&w=900&q=80",
+    hostId: "leo",
+    tags: ["Beach", "Free", "Sunrise"],
+    description: "Ücretsiz sahil yogası; sonrasında simit ve deniz molası. Yeni başlayanlara açık.",
+  },
+  {
+    id: "ist-egypt-bazaar",
+    title: "Mısır Çarşısı Baharat & Tatlı Buluşması",
+    city: "İstanbul",
+    country: "Türkiye",
+    category: "Foodie",
+    date: "Oct 06",
+    time: "13:00",
+    price: 10,
+    currency: "TRY",
+    rating: 4.7,
+    attendees: 7,
+    maxAttendees: 12,
+    distanceKm: 2.8,
+    coordinates: [41.0155, 28.9708],
+    image:
+      "https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=900&q=80",
+    hostId: "amina",
+    tags: ["Bazaar", "Spices", "Baklava"],
+    description:
+      "Baharat tezgahları, lokum ve taze baklava tatma; Yeni Camii avlusunda müzik molası.",
+  },
 ];
 
 export const feedItems: FeedItem[] = [
-  { id: "feed-1", actor: "Maya", action: "joined", place: "Berlin Warehouse Gallery Night", minutesAgo: 2 },
-  { id: "feed-2", actor: "Leo", action: "created", place: "Banff Alpine Sunrise Hike", minutesAgo: 7 },
-  { id: "feed-3", actor: "Amina", action: "saved", place: "Marrakech Rooftop Supper Club", minutesAgo: 12 },
+  {
+    id: "feed-1",
+    actor: "Maya",
+    action: "joined",
+    place: "Berlin Warehouse Gallery Night",
+    minutesAgo: 2,
+  },
+  {
+    id: "feed-2",
+    actor: "Leo",
+    action: "created",
+    place: "Banff Alpine Sunrise Hike",
+    minutesAgo: 7,
+  },
+  {
+    id: "feed-3",
+    actor: "Amina",
+    action: "saved",
+    place: "Marrakech Rooftop Supper Club",
+    minutesAgo: 12,
+  },
   { id: "feed-4", actor: "Noah", action: "opened radar near", place: "Reykjavik", minutesAgo: 18 },
-  { id: "feed-5", actor: "Sofia", action: "shared an itinerary for", place: "Lisbon", minutesAgo: 24 },
+  {
+    id: "feed-5",
+    actor: "Sofia",
+    action: "shared an itinerary for",
+    place: "Lisbon",
+    minutesAgo: 24,
+  },
 ];

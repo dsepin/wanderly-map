@@ -263,6 +263,36 @@ export const EVENT_FACETS: Record<string, EventFacets> = {
     aud: ["arkadas", "solo"],
     tempo: ["kosu"],
   },
+  "ist-bosphorus-sail": {
+    exp: ["sahil", "park"],
+    drinks: ["alkolsuz", "kahve"],
+    aud: ["romantik", "arkadas"],
+    tempo: ["dinlenme"],
+  },
+  "ist-karakoy-cafe": {
+    exp: ["galeri"],
+    drinks: ["kahve"],
+    aud: ["solo", "romantik"],
+    tempo: ["dinlenme"],
+  },
+  "ist-taksim-night": {
+    exp: ["canli-muzik", "dj", "pub"],
+    drinks: ["alkollu"],
+    aud: ["arkadas"],
+    tempo: [],
+  },
+  "ist-modacik-yoga": {
+    exp: ["park"],
+    drinks: ["alkolsuz"],
+    aud: ["solo", "arkadas"],
+    tempo: ["yoga", "meditasyon"],
+  },
+  "ist-egypt-bazaar": {
+    exp: ["gastronomi", "sokak"],
+    drinks: ["alkolsuz"],
+    aud: ["aile", "arkadas"],
+    tempo: [],
+  },
 };
 
 /* O geceye özel müzik tarzları (özellikle gece etkinliklerinde gösterilir) */
@@ -272,6 +302,7 @@ export const MUSIC_STYLES: Record<string, string[]> = {
   "oaxaca-mezcal": ["Cumbia", "Mariachi", "Banda"],
   "lisbon-fado": ["Fado", "Portekiz Gitarı"],
   "marrakech-supper": ["Gnawa", "Chaabi"],
+  "ist-taksim-night": ["Indie", "DJ Set", "Canlı Rock"],
 };
 
 const CATEGORY_FACETS: Record<EventCategory, EventFacets> = {
