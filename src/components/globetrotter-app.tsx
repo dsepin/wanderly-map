@@ -33,7 +33,16 @@ import {
   WalletCards,
   X,
 } from "lucide-react";
-import { lazy, Suspense, useMemo, useRef, useState, type ChangeEvent, type FormEvent } from "react";
+import {
+  lazy,
+  Suspense,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ChangeEvent,
+  type FormEvent,
+} from "react";
 
 import { Button } from "@/components/ui/button";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
@@ -58,6 +67,7 @@ import { GlobeTrotterProvider, useGlobeTrotter } from "@/contexts/globetrotter-c
 import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable";
 import type { EventCategory, TravelEvent } from "@/lib/globetrotter-data";
+import { venueStories } from "@/lib/globetrotter-data";
 import {
   BUDGET_LEVELS,
   FILTER_GROUPS,
@@ -1300,6 +1310,7 @@ function MapStage({ onVenueOpen }: { onVenueOpen: () => void }) {
           <TravelMap />
         </Suspense>
       </ClientOnly>
+      <StoryBar />
       <div className="pointer-events-none absolute inset-x-4 top-24 z-10 flex flex-wrap items-start justify-between gap-3 lg:top-28">
         <div className="pointer-events-auto rounded-2xl border border-glass-border bg-glass p-2 shadow-glass backdrop-blur-2xl">
           <div className="flex flex-wrap gap-2">
@@ -1785,6 +1796,208 @@ function EventChatDialog() {
         </form>
       </DialogContent>
     </Dialog>
+  );
+}
+
+function StoryBar() {
+  const { travelers, setSelectedEventId } = useGlobeTrotter();
+  const [activeId, setActiveId] = useState<string | null>(null);
+  const [liked, setLiked] = useState<string[]>([]);
+
+  const storyOf = (story: (typeof venueStories)[number]) =>
+    travelers.find((t) => t.id === story.authorId);
+
+  const toggleLike = (id: string) => {
+    setLiked((current) =>
+      current.includes(id) ? current.filter((item) => item !== id) : [...current, id],
+    );
+  };
+
+  return (
+    <>
+      <div className="pointer-events-none absolute inset-x-0 top-20 z-10 flex justify-center lg:top-24">
+        <div className="pointer-events-auto flex max-w-full items-center gap-3 overflow-x-auto rounded-2xl border border-glass-border bg-glass px-3 py-2 shadow-glass backdrop-blur-2xl">
+          {venueStories.map((story) => {
+            const author = storyOf(story);
+            const viewed = liked.includes(story.id);
+            return (
+              <button
+                key={story.id}
+                type="button"
+                data-story={story.id}
+                className="group flex w-16 shrink-0 flex-col items-center gap-1"
+                onClick={() => setActiveId(story.id)}
+              >
+                <span
+                  className={cn(
+                    "grid size-14 place-items-center rounded-full p-[3px] transition group-hover:scale-105",
+                    viewed ? "bg-border" : "bg-gradient-to-tr from-ochre via-terracotta to-sage",
+                  )}
+                >
+                  <img
+                    src={author?.avatar}
+                    alt=""
+                    className="size-full rounded-full border-2 border-glass object-cover"
+                  />
+                </span>
+                <span className="max-w-full truncate text-[10px] font-semibold text-foreground/80">
+                  {author?.name.split(" ")[0]}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {activeId ? (
+        <StoryViewer
+          storyId={activeId}
+          liked={liked.includes(activeId)}
+          onToggleLike={() => toggleLike(activeId)}
+          onClose={() => setActiveId(null)}
+          onGoEvent={(eventId) => {
+            setActiveId(null);
+            setSelectedEventId(eventId);
+          }}
+        />
+      ) : null}
+    </>
+  );
+}
+
+function StoryViewer({
+  storyId,
+  liked,
+  onToggleLike,
+  onClose,
+  onGoEvent,
+}: {
+  storyId: string;
+  liked: boolean;
+  onToggleLike: () => void;
+  onClose: () => void;
+  onGoEvent: (eventId: string) => void;
+}) {
+  const { allEvents, travelers } = useGlobeTrotter();
+  const [progress, setProgress] = useState(0);
+  const index = venueStories.findIndex((story) => story.id === storyId);
+  const story = venueStories[Math.max(0, index)];
+  const author = story ? travelers.find((t) => t.id === story.authorId) : undefined;
+  const event = story ? allEvents.find((item) => item.id === story.eventId) : undefined;
+
+  useEffect(() => {
+    const timer = window.setInterval(() => {
+      setProgress((current) => {
+        if (current >= 100) {
+          window.clearInterval(timer);
+          return 100;
+        }
+        return current + 2.5;
+      });
+    }, 100);
+    return () => window.clearInterval(timer);
+  }, [storyId]);
+
+  useEffect(() => {
+    if (progress >= 100 && index < venueStories.length - 1) {
+      const next = venueStories[index + 1];
+      if (!next) return;
+      setProgress(0);
+      onGoEvent(next.eventId);
+      // storyId değişmeli; onClose gibi davranmak yerine viewer'ı dolaştırmak için id set edilir
+      window.setTimeout(() => {
+        const el = document.querySelector<HTMLButtonElement>(`[data-story="${next.id}"]`);
+        el?.click();
+      }, 50);
+    } else if (progress >= 100) {
+      onClose();
+    }
+  }, [progress, index, onClose, onGoEvent]);
+
+  if (!story) return null;
+
+  return (
+    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/90 p-4 backdrop-blur-sm">
+      <div className="relative w-full max-w-lg overflow-hidden rounded-3xl border border-glass-border bg-card shadow-glass">
+        <div className="relative h-[70vh]">
+          <img src={story.image} alt="" className="h-full w-full object-cover" />
+          <div className="absolute inset-x-0 top-0 flex gap-1 p-3">
+            {venueStories.map((item, i) => (
+              <div key={item.id} className="h-1 flex-1 overflow-hidden rounded-full bg-white/30">
+                <div
+                  className="h-full bg-white transition-all duration-100"
+                  style={{ width: i < index ? "100%" : i === index ? `${progress}%` : "0%" }}
+                />
+              </div>
+            ))}
+          </div>
+          <div className="absolute inset-x-0 top-4 flex items-center gap-3 p-3">
+            <img
+              src={author?.avatar}
+              alt=""
+              className="size-10 rounded-full border-2 border-white/80 object-cover"
+            />
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-sm font-bold text-white drop-shadow">{author?.name}</p>
+              <p className="text-xs text-white/80">{story.minutesAgo} dk önce</p>
+            </div>
+            <button
+              type="button"
+              aria-label="Kapat"
+              className="grid size-9 place-items-center rounded-full bg-black/40 text-white transition hover:bg-black/60"
+              onClick={onClose}
+            >
+              <X className="size-5" />
+            </button>
+          </div>
+          <div className="absolute inset-x-0 bottom-0 space-y-3 bg-gradient-to-t from-black/80 to-transparent p-4 pt-16">
+            <p className="text-sm font-medium text-white drop-shadow">{story.caption}</p>
+            <div className="flex items-center justify-between gap-3">
+              <p className="text-xs text-white/80">👁 {story.views} görüntülenme</p>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  aria-label="Beğen"
+                  className="grid size-10 place-items-center rounded-full bg-black/40 text-white transition hover:bg-black/60"
+                  onClick={onToggleLike}
+                >
+                  <Heart className={cn("size-5", liked && "fill-ochre text-ochre")} />
+                </button>
+                <button
+                  type="button"
+                  className="rounded-full bg-white px-4 py-2 text-xs font-bold text-black transition hover:bg-white/90"
+                  onClick={() => onGoEvent(story.eventId)}
+                >
+                  Etkinliğe git
+                </button>
+                {index > 0 ? (
+                  <button
+                    type="button"
+                    data-story={storyId}
+                    aria-label="Önceki story"
+                    className="rounded-full bg-black/40 px-3 py-2 text-xs font-semibold text-white"
+                    onClick={() => {
+                      const prev = venueStories[index - 1];
+                      if (!prev) return;
+                      setProgress(0);
+                      onClose();
+                      window.setTimeout(() => {
+                        const el = document.querySelector<HTMLButtonElement>(
+                          `[data-story="${prev.id}"]`,
+                        );
+                        el?.click();
+                      }, 50);
+                    }}
+                  >
+                    ← Önceki
+                  </button>
+                ) : null}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
   );
 }
 

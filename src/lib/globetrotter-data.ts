@@ -53,6 +53,16 @@ export type FeedItem = {
   minutesAgo: number;
 };
 
+export type VenueStory = {
+  id: string;
+  eventId: string;
+  image: string;
+  caption: string;
+  authorId: string;
+  minutesAgo: number;
+  views: number;
+};
+
 export const categories: EventCategory[] = [
   "Nightlife",
   "Hiking",
@@ -133,6 +143,70 @@ export const travelers: TravelerProfile[] = [
     travelStyles: ["Culture", "Luxury", "Slow travel"],
     bio: "Design hotels, small galleries, tiled streets, and long lunches.",
     openToMeet: true,
+  },
+];
+
+/** Mekânlardan gelen anlık story'ler (üst şerit + tam ekran görüntüleyici) */
+export const venueStories: VenueStory[] = [
+  {
+    id: "s1",
+    eventId: "ist-taksim-night",
+    image:
+      "https://images.unsplash.com/photo-1470229722913-7c0e2dbbafd3?auto=format&fit=crop&w=900&q=80",
+    caption: "Ritm İstanbul'da gece şimdiden ısındı 🔥",
+    authorId: "maya",
+    minutesAgo: 18,
+    views: 124,
+  },
+  {
+    id: "s2",
+    eventId: "ist-karakoy-cafe",
+    image:
+      "https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?auto=format&fit=crop&w=900&q=80",
+    caption: "V60 demlendi, ilk fincan hazır ☕",
+    authorId: "sofia",
+    minutesAgo: 42,
+    views: 86,
+  },
+  {
+    id: "s3",
+    eventId: "ist-bosphorus-sail",
+    image:
+      "https://images.unsplash.com/photo-1519681393784-d120267933ba?auto=format&fit=crop&w=900&q=80",
+    caption: "Boğaz'da gün batımı büyüsü 🌅",
+    authorId: "amina",
+    minutesAgo: 65,
+    views: 211,
+  },
+  {
+    id: "s4",
+    eventId: "tokyo-food",
+    image:
+      "https://images.unsplash.com/photo-1515003197210-e0cd71810b5f?auto=format&fit=crop&w=900&q=80",
+    caption: "Yakitori tezgâhı bu akşam dolu 🍢",
+    authorId: "maya",
+    minutesAgo: 96,
+    views: 174,
+  },
+  {
+    id: "s5",
+    eventId: "ist-modacik-yoga",
+    image:
+      "https://images.unsplash.com/photo-1518611012118-696072aa579a?auto=format&fit=crop&w=900&q=80",
+    caption: "Sahilde sabah yogası — 8 kişi katıldı 🧘",
+    authorId: "leo",
+    minutesAgo: 130,
+    views: 58,
+  },
+  {
+    id: "s6",
+    eventId: "berlin-gallery",
+    image:
+      "https://images.unsplash.com/photo-1531058020387-3be344556be6?auto=format&fit=crop&w=900&q=80",
+    caption: "Yeni serinin açılış günü 🎨",
+    authorId: "leo",
+    minutesAgo: 180,
+    views: 93,
   },
 ];
 

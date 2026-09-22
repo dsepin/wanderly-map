@@ -43,11 +43,11 @@
   menü kartı, yorum + beğeni/puan.
 - `[x]` **T14 — İstek Yolla / Kaydet / Hatırlat:** istek → organizatör onayı →
   onay sonrası chat açılır (simülasyon).
-- `[>]` **T15 — Story'ler:** mekândan anlık story paylaşımı + görüntüleyici.
+- `[x]` **T15 — Story'ler:** mekândan anlık story paylaşımı + görüntüleyici.
 
 ## Faz 5 — Sosyal + grup
 
-- `[ ]` **T16 — Yakın arkadaş + anket + lider:** toggle, bildirim, ret nedenleri
+- `[>]` **T16 — Yakın arkadaş + anket + lider:** toggle, bildirim, ret nedenleri
   (Menü/Kalabalık/Bütçe/Konum), lider ekranında oylar.
 - `[ ]` **T17 — 6+ kişi grup indirimi:** mekâna bildirim + özel teklif akışı.
 - `[ ]` **T18 — Gönüllü ev sahipliği:** 4.30+ puan kuralı + konaklama isteği akışı.
