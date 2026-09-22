@@ -20,6 +20,15 @@ export type TravelEvent = {
   hostId: string;
   tags: string[];
   description: string;
+  venue?: VenueInfo;
+};
+
+export type VenueInfo = {
+  name: string;
+  occupancy: { current: number; capacity: number };
+  tables: { id: string; label: string; seats: number; occupied: boolean }[];
+  menu: { name: string; price: string; tag?: string }[];
+  reviews: { author: string; rating: number; text: string }[];
 };
 
 export type TravelerProfile = {
@@ -148,6 +157,27 @@ export const travelEvents: TravelEvent[] = [
     hostId: "sofia",
     tags: ["Beach", "Breathwork", "Beginner"],
     description: "Golden-hour flow, coconut breakfast, and a quiet swim before the cafes open.",
+    venue: {
+      name: "The Loft",
+      occupancy: { current: 14, capacity: 40 },
+      tables: [
+        { id: "m1", label: "A1", seats: 2, occupied: true },
+        { id: "m2", label: "A2", seats: 2, occupied: false },
+        { id: "m3", label: "B1", seats: 4, occupied: true },
+        { id: "m4", label: "B2", seats: 4, occupied: true },
+        { id: "m5", label: "C1", seats: 6, occupied: false },
+        { id: "m6", label: "C2", seats: 6, occupied: false },
+      ],
+      menu: [
+        { name: "Matcha Smoothie", price: "$6", tag: "Vejetaryen" },
+        { name: "Avocado Toast", price: "$12", tag: "Kahvaltı" },
+        { name: "Coconut Pancakes", price: "$9", tag: "Tatlı" },
+      ],
+      reviews: [
+        { author: "Kira", rating: 5, text: "Gün doğumu muhteşemdi, atmosfer çok sakin." },
+        { author: "Jonas", rating: 4, text: "Kahvaltı harikaydı, yoga saldırgan değildi." },
+      ],
+    },
   },
   {
     id: "tokyo-food",
@@ -382,6 +412,27 @@ export const travelEvents: TravelEvent[] = [
     tags: ["Coffee", "Gallery", "Walk"],
     description:
       "Galata'dan Karaköy'e yürüyüş: bağımsız galeriler ve üçüncü dalga kahve durakları.",
+    venue: {
+      name: "Draft Coffee Lab",
+      occupancy: { current: 22, capacity: 30 },
+      tables: [
+        { id: "c1", label: "Pencere 1", seats: 2, occupied: true },
+        { id: "c2", label: "Pencere 2", seats: 2, occupied: true },
+        { id: "c3", label: "Orta 1", seats: 4, occupied: false },
+        { id: "c4", label: "Orta 2", seats: 4, occupied: true },
+        { id: "c5", label: "Tezgah", seats: 3, occupied: false },
+      ],
+      menu: [
+        { name: "V60 Kenya", price: "₺120", tag: "Filtre" },
+        { name: "Flat White", price: "₺95", tag: "Espresso" },
+        { name: "Pistachio Croissant", price: "₺80", tag: "Tatlı" },
+        { name: "Matcha Latte", price: "₺110", tag: "Alkolsüz" },
+      ],
+      reviews: [
+        { author: "Selin", rating: 5, text: "Karaköy'ün en iyi V60'ı burada." },
+        { author: "Cem", rating: 4, text: "Atmosfer iyi, hafta sonu kalabalık oluyor." },
+      ],
+    },
   },
   {
     id: "ist-taksim-night",
@@ -403,6 +454,30 @@ export const travelEvents: TravelEvent[] = [
     hostId: "maya",
     tags: ["Bar hop", "DJs", "Live music"],
     description: "Cihangir'e saklı meyhaneler, canlı müzik ve indie DJ setleriyle gece turu.",
+    venue: {
+      name: "Ritm İstanbul",
+      occupancy: { current: 68, capacity: 120 },
+      tables: [
+        { id: "n1", label: "Bar 1", seats: 4, occupied: true },
+        { id: "n2", label: "Bar 2", seats: 4, occupied: true },
+        { id: "n3", label: "Sahne Önü", seats: 8, occupied: true },
+        { id: "n4", label: "Sahne Önü 2", seats: 8, occupied: false },
+        { id: "n5", label: "Loft 1", seats: 6, occupied: true },
+        { id: "n6", label: "Loft 2", seats: 6, occupied: false },
+        { id: "n7", label: "Köşe 1", seats: 2, occupied: true },
+        { id: "n8", label: "Köşe 2", seats: 2, occupied: false },
+      ],
+      menu: [
+        { name: "Rakı + Meze Tabak", price: "₺320", tag: "Klasik" },
+        { name: "Craft Bira Seti", price: "₺240", tag: "Yerli" },
+        { name: "Imam Bayıldı", price: "₺150", tag: "Vegan" },
+      ],
+      reviews: [
+        { author: "Deniz", rating: 5, text: "DJ seti harikaydı, yer bulmak için erken gidin." },
+        { author: "Elif", rating: 4, text: "Müzik ortamı süper, fiyatlar biraz yüksek." },
+        { author: "Mert", rating: 5, text: "Cihangir'in en iyi gece mekanlarından." },
+      ],
+    },
   },
   {
     id: "ist-modacik-yoga",

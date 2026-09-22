@@ -55,7 +55,7 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { GlobeTrotterProvider, useGlobeTrotter } from "@/contexts/globetrotter-context";
 import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable";
-import type { EventCategory } from "@/lib/globetrotter-data";
+import type { EventCategory, TravelEvent } from "@/lib/globetrotter-data";
 import {
   BUDGET_LEVELS,
   FILTER_GROUPS,
@@ -106,6 +106,7 @@ function GlobeTrotterApp() {
 
 function GlobeTrotterExperience() {
   const { selectedEvent } = useGlobeTrotter();
+  const [venueOpen, setVenueOpen] = useState(false);
 
   return (
     <main className="min-h-screen overflow-hidden bg-background text-foreground">
@@ -113,9 +114,14 @@ function GlobeTrotterExperience() {
         <TopNavigation />
         <div className="relative z-10 grid min-h-screen grid-cols-1 pt-24 lg:grid-cols-[minmax(380px,40%)_minmax(0,60%)] lg:pt-0">
           <Sidebar />
-          <MapStage />
+          <MapStage onVenueOpen={() => setVenueOpen(true)} />
         </div>
-        <MobileEventDrawer open={Boolean(selectedEvent)} />
+        <MobileEventDrawer open={Boolean(selectedEvent)} onVenueOpen={() => setVenueOpen(true)} />
+        <VenueDetailDialog
+          open={venueOpen}
+          event={selectedEvent}
+          onClose={() => setVenueOpen(false)}
+        />
         <MobileBottomNav />
       </div>
     </main>
@@ -1256,7 +1262,7 @@ function ItineraryPanel() {
   );
 }
 
-function MapStage() {
+function MapStage({ onVenueOpen }: { onVenueOpen: () => void }) {
   const {
     selectedEvent,
     mapStyle,
@@ -1368,6 +1374,11 @@ function MapStage() {
                   <Heart className={cn("size-4", isSaved && "fill-terracotta text-terracotta")} />{" "}
                   {isSaved ? "Saved" : "Save"}
                 </Button>
+                {selectedEvent.venue ? (
+                  <Button variant="glass" onClick={onVenueOpen}>
+                    <MapPin className="size-4" /> Mekan Detayı
+                  </Button>
+                ) : null}
                 <Button variant="glass" disabled title="Event chat arrives with accounts (Phase 3)">
                   <MessageCircle className="size-4" /> Open chat
                 </Button>
@@ -1391,7 +1402,7 @@ function MapSkeleton() {
   );
 }
 
-function MobileEventDrawer({ open }: { open: boolean }) {
+function MobileEventDrawer({ open, onVenueOpen }: { open: boolean; onVenueOpen: () => void }) {
   const {
     selectedEvent,
     setSelectedEventId,
@@ -1466,12 +1477,134 @@ function MobileEventDrawer({ open }: { open: boolean }) {
                   <Heart className={cn("size-4", isSaved && "fill-terracotta text-terracotta")} />{" "}
                   {isSaved ? "Saved" : "Save"}
                 </Button>
+                {selectedEvent.venue ? (
+                  <Button variant="outline" className="col-span-2" onClick={onVenueOpen}>
+                    <MapPin className="size-4" /> Mekan Detayı
+                  </Button>
+                ) : null}
               </div>
             </div>
           </>
         ) : null}
       </DrawerContent>
     </Drawer>
+  );
+}
+
+function VenueDetailDialog({
+  open,
+  event,
+  onClose,
+}: {
+  open: boolean;
+  event: TravelEvent | undefined;
+  onClose: () => void;
+}) {
+  const venue = event?.venue;
+  const occupiedTables = venue ? venue.tables.filter((t) => t.occupied).length : 0;
+  const occupancyPct = venue
+    ? Math.round((venue.occupancy.current / venue.occupancy.capacity) * 100)
+    : 0;
+
+  return (
+    <Dialog open={open} onOpenChange={(next) => !next && onClose()}>
+      <DialogContent className="border-glass-border bg-card/95 shadow-glass backdrop-blur-2xl sm:max-w-2xl">
+        <DialogHeader>
+          <DialogTitle className="font-display text-2xl">
+            {venue?.name ?? "Mekan Detayı"}
+          </DialogTitle>
+          <DialogDescription>{event?.title} · Canlı doluluk ve rezervasyon</DialogDescription>
+        </DialogHeader>
+        {venue ? (
+          <div className="grid max-h-[60vh] gap-4 overflow-y-auto pr-1">
+            <div className="rounded-2xl border border-border bg-background p-4">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <p className="text-sm font-semibold">Canlı Doluluk</p>
+                  <p className="text-xs text-muted-foreground">
+                    {venue.occupancy.current} / {venue.occupancy.capacity} kişi
+                  </p>
+                </div>
+                <span className="rounded-full bg-terracotta/15 px-3 py-1 text-sm font-bold text-terracotta">
+                  %{occupancyPct}
+                </span>
+              </div>
+              <div className="mt-3 h-2.5 overflow-hidden rounded-full bg-muted">
+                <div
+                  className="h-full rounded-full bg-terracotta transition-all"
+                  style={{ width: `${Math.min(100, occupancyPct)}%` }}
+                />
+              </div>
+            </div>
+
+            <div className="rounded-2xl border border-border bg-background p-4">
+              <p className="text-sm font-semibold">Masa Krokisi</p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                {occupiedTables} masa dolu · {venue.tables.length - occupiedTables} masa boş
+              </p>
+              <div className="mt-3 grid grid-cols-4 gap-2">
+                {venue.tables.map((table) => (
+                  <div
+                    key={table.id}
+                    className={cn(
+                      "grid place-items-center rounded-xl border px-2 py-3 text-center",
+                      table.occupied
+                        ? "border-terracotta bg-terracotta/15 text-terracotta"
+                        : "border-sage bg-sage/10 text-sage",
+                    )}
+                    title={table.occupied ? "Dolu" : "Boş"}
+                  >
+                    <p className="text-sm font-bold">{table.label}</p>
+                    <p className="text-[10px] text-muted-foreground">{table.seats} kişilik</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="rounded-2xl border border-border bg-background p-4">
+              <p className="text-sm font-semibold">Menü Kartı</p>
+              <div className="mt-2 grid gap-2">
+                {venue.menu.map((item) => (
+                  <div
+                    key={item.name}
+                    className="flex items-center justify-between gap-3 rounded-xl bg-muted/60 px-3 py-2"
+                  >
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-medium">{item.name}</p>
+                      {item.tag ? (
+                        <p className="text-xs text-muted-foreground">{item.tag}</p>
+                      ) : null}
+                    </div>
+                    <span className="shrink-0 text-sm font-bold text-sage">{item.price}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="rounded-2xl border border-border bg-background p-4">
+              <p className="text-sm font-semibold">Yorumlar & Puanlar</p>
+              <div className="mt-2 grid gap-2">
+                {venue.reviews.map((review) => (
+                  <div key={review.author} className="rounded-xl bg-muted/60 p-3">
+                    <div className="flex items-center justify-between gap-3">
+                      <p className="text-sm font-semibold">{review.author}</p>
+                      <span className="flex items-center gap-1 text-xs font-bold text-ochre">
+                        <Star className="size-3 fill-ochre" /> {review.rating}
+                      </span>
+                    </div>
+                    <p className="mt-1 text-xs leading-5 text-muted-foreground">{review.text}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        ) : (
+          <p className="rounded-xl bg-muted p-4 text-sm text-muted-foreground">
+            Bu etkinliğin henüz mekan bilgisi eklenmedi.
+          </p>
+        )}
+      </DialogContent>
+    </Dialog>
   );
 }
 

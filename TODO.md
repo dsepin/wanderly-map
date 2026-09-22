@@ -39,9 +39,9 @@
   viewport dahil etme, mesafeye göre sıralı kare kartlar + km rozeti,
   pin tıklayınca kart vurgulama.
 - `[x]` **T12 — 12+ mock etkinlik:** İstanbul çevresine 5 yeni etkinlik (toplam 15).
-- `[>]` **T13 — Mekan detayı:** canlı doluluk sayacı, masa krokisi (dolu/boş),
+- `[x]` **T13 — Mekan detayı:** canlı doluluk sayacı, masa krokisi (dolu/boş),
   menü kartı, yorum + beğeni/puan.
-- `[ ]` **T14 — İstek Yolla / Kaydet / Hatırlat:** istek → organizatör onayı →
+- `[>]` **T14 — İstek Yolla / Kaydet / Hatırlat:** istek → organizatör onayı →
   anlık mesajlaşma açılır.
 
 ## Faz 5 — Sosyal + grup
