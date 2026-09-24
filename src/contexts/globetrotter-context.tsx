@@ -41,6 +41,12 @@ type DraftEvent = Pick<
   coverPreview?: string | undefined;
 };
 
+export type GlobeTrotterPollVote = {
+  reason: "Menü" | "Kalabalık" | "Bütçe" | "Konum";
+  count: number;
+  mine: boolean;
+};
+
 type GlobeTrotterState = {
   allEvents: TravelEvent[];
   filteredEvents: TravelEvent[];
@@ -78,6 +84,11 @@ type GlobeTrotterState = {
   approveJoinRequest: (eventId: string) => void;
   openChat: (eventId: string) => void;
   closeChat: () => void;
+  closeFriendsOnly: boolean;
+  leaderEventIds: string[];
+  friendVotes: Record<string, { reason: string; count: number; mine: boolean }[]>;
+  setCloseFriendsOnly: (value: boolean) => void;
+  voteForEvent: (eventId: string, reason: string) => void;
   setSelectedEventId: (eventId: string) => void;
   toggleCategory: (category: EventCategory) => void;
   clearFilters: () => void;
@@ -126,6 +137,11 @@ export function GlobeTrotterProvider({ children }: { children: ReactNode }) {
   const [requestEventIds, setRequestEventIds] = useState<string[]>([]);
   const [approvedEventIds, setApprovedEventIds] = useState<string[]>([]);
   const [chatEventId, setChatEventId] = useState("");
+  const [closeFriendsOnly, setCloseFriendsOnly] = useState(false);
+  const [leaderEventIds, setLeaderEventIds] = useState<string[]>([]);
+  const [friendVotes, setFriendVotes] = useState<
+    Record<string, { reason: string; count: number; mine: boolean }[]>
+  >({});
 
   useEffect(() => {
     const savedTheme = window.localStorage.getItem("globetrotter-theme");
@@ -365,6 +381,8 @@ export function GlobeTrotterProvider({ children }: { children: ReactNode }) {
     (eventId: string) => {
       if (requestEventIds.includes(eventId)) return;
       setRequestEventIds((current) => [...current, eventId]);
+      // İlk istek yapan Lider olur
+      setLeaderEventIds((current) => (current.includes(eventId) ? current : [...current, eventId]));
       const target = allEvents.find((event) => event.id === eventId);
       if (target) {
         setFeed((current) => [
@@ -393,6 +411,38 @@ export function GlobeTrotterProvider({ children }: { children: ReactNode }) {
 
   const closeChat = useCallback(() => {
     setChatEventId("");
+  }, []);
+
+  const voteForEvent = useCallback((eventId: string, reason: string) => {
+    setFriendVotes((current) => {
+      const existing = current[eventId] ?? [];
+      const hasMine = existing.some((vote) => vote.mine);
+      const hasReason = existing.some((vote) => vote.reason === reason);
+      let next = existing;
+      if (hasMine && hasReason) {
+        // Aynı sebebe tekrar oy = oy iptal
+        next = existing
+          .map((vote) =>
+            vote.reason === reason && vote.mine
+              ? { ...vote, count: vote.count - 1, mine: false }
+              : vote,
+          )
+          .filter((vote) => vote.count > 0);
+      } else if (hasMine) {
+        // Oyu yeni sebebe taşı
+        next = existing
+          .map((vote) => (vote.mine ? { ...vote, count: vote.count - 1, mine: false } : vote))
+          .filter((vote) => vote.count > 0);
+        next = [...next, { reason, count: 1, mine: true }];
+      } else if (hasReason) {
+        next = existing.map((vote) =>
+          vote.reason === reason ? { ...vote, count: vote.count + 1, mine: true } : vote,
+        );
+      } else {
+        next = [...existing, { reason, count: 1, mine: true }];
+      }
+      return { ...current, [eventId]: next };
+    });
   }, []);
 
   const addEvent = useCallback((event: DraftEvent) => {
@@ -453,6 +503,11 @@ export function GlobeTrotterProvider({ children }: { children: ReactNode }) {
       requestEventIds,
       approvedEventIds,
       chatEventId,
+      closeFriendsOnly,
+      setCloseFriendsOnly,
+      leaderEventIds,
+      friendVotes,
+      voteForEvent,
       setMapCenter,
       setPickMode,
       setCreateOpen,
@@ -508,6 +563,11 @@ export function GlobeTrotterProvider({ children }: { children: ReactNode }) {
       requestEventIds,
       approvedEventIds,
       chatEventId,
+      closeFriendsOnly,
+      setCloseFriendsOnly,
+      leaderEventIds,
+      friendVotes,
+      voteForEvent,
       setMapCenter,
       setPickMode,
       setCreateOpen,
