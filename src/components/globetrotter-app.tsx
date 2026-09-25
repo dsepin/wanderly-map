@@ -279,13 +279,14 @@ function TopNavigation() {
           <Button
             variant={pickMode ? "warm" : "glass"}
             size="sm"
+            className="flex-col gap-0.5 px-3 py-1.5 leading-tight"
             aria-label="Haritaya tıklayarak etkinlik yerleştir"
             onClick={() => setPickMode(!pickMode)}
           >
-            <Pin className="size-4" />
-            <span className="hidden xl:inline">
-              {pickMode ? "Tıklama aktif" : "Haritaya Tıkla"}
+            <span className="text-[10px] font-semibold uppercase tracking-wide">
+              {pickMode ? "Tıklama aktif" : "Harita"}
             </span>
+            <Pin className="size-4" />
           </Button>
 
           <nav className="hidden items-center gap-1 xl:flex" aria-label="GlobeTrotter sections">
