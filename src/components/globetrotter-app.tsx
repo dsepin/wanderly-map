@@ -5,13 +5,11 @@ import {
   CalendarDays,
   ChevronDown,
   Compass,
-  Croissant,
   Globe2,
   Grid2X2,
   Crown,
   Heart,
   ImagePlus,
-  Landmark,
   Layers3,
   LayoutList,
   LocateFixed,
@@ -19,7 +17,6 @@ import {
   MapPin,
   MessageCircle,
   Moon,
-  Mountain,
   Pin,
   Plus,
   Radar,
@@ -46,6 +43,7 @@ import {
 } from "react";
 
 import { Button } from "@/components/ui/button";
+import { QuickFilterSheet } from "@/components/quick-filter-sheet";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import {
   Dialog,
@@ -153,11 +151,10 @@ function TopNavigation() {
     setSelectedEventId,
     pickMode,
     setPickMode,
-    toggleFacetParent,
-    setFreeOnly,
-    facets,
+    totalFacetCount,
   } = useGlobeTrotter();
   const [autocompleteOpen, setAutocompleteOpen] = useState(false);
+  const [quickFilterOpen, setQuickFilterOpen] = useState(false);
 
   const handleGoogleSignIn = async () => {
     if (typeof window === "undefined") return;
@@ -180,33 +177,6 @@ function TopNavigation() {
       )
       .slice(0, 6);
   }, [allEvents, searchQuery]);
-
-  const quickFilters = [
-    {
-      key: "yemek",
-      label: "Yeme & İçme",
-      icon: Croissant,
-      childIds: ["gastronomi", "sokak", "restoran"],
-    },
-    {
-      key: "doga",
-      label: "Doğa & Yürüyüş",
-      icon: Mountain,
-      childIds: ["trekking", "park", "bisiklet"],
-    },
-    {
-      key: "kultur",
-      label: "Kültür & Sanat",
-      icon: Landmark,
-      childIds: ["muze", "tiyatro", "sergi", "galeri"],
-    },
-    {
-      key: "gece",
-      label: "Gece Hayatı",
-      icon: Moon,
-      childIds: ["canli-muzik", "dj", "club", "pub", "sahil"],
-    },
-  ];
 
   return (
     <header
@@ -337,44 +307,21 @@ function TopNavigation() {
         </div>
 
         <div className="flex flex-wrap items-center gap-1.5">
-          <span className="hidden items-center gap-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground lg:flex">
-            <Layers3 className="size-3.5" /> Hızlı filtre
-          </span>
-          {quickFilters.map((filter) => {
-            const Icon = filter.icon;
-            const active = facets.experience.some((f) => filter.childIds.includes(f));
-            return (
-              <button
-                key={filter.key}
-                type="button"
-                onClick={() => toggleFacetParent("experience", filter.childIds)}
-                className={cn(
-                  "flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-semibold transition",
-                  active
-                    ? "border-terracotta bg-terracotta text-terracotta-foreground shadow-travel"
-                    : "border-border bg-background/70 text-muted-foreground hover:border-terracotta/50 hover:text-foreground",
-                )}
-                aria-pressed={active}
-              >
-                <Icon className="size-3.5" />
-                {filter.label}
-              </button>
-            );
-          })}
-          <button
-            type="button"
-            onClick={() => setFreeOnly(!facets.freeOnly)}
-            className={cn(
-              "flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-semibold transition",
-              facets.freeOnly
-                ? "border-terracotta bg-terracotta text-terracotta-foreground shadow-travel"
-                : "border-border bg-background/70 text-muted-foreground hover:border-terracotta/50 hover:text-foreground",
-            )}
-            aria-pressed={facets.freeOnly}
+          <Button
+            variant="glass"
+            size="sm"
+            className="gap-1.5"
+            onClick={() => setQuickFilterOpen(true)}
           >
-            <Wallet className="size-3.5" />
-            Ücretsiz
-          </button>
+            <Layers3 className="size-3.5" />
+            Hızlı Filtre
+            {totalFacetCount > 0 ? (
+              <span className="grid min-w-5 place-items-center rounded-full bg-terracotta px-1.5 py-0.5 text-[11px] font-bold text-terracotta-foreground">
+                {totalFacetCount}
+              </span>
+            ) : null}
+          </Button>
+          <QuickFilterSheet open={quickFilterOpen} onOpenChange={setQuickFilterOpen} />
         </div>
       </div>
     </header>
